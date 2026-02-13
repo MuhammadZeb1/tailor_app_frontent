@@ -28,6 +28,16 @@ const InvoiceList = () => {
     dispatch(fetchInvoices());
   }, [dispatch]);
 
+  useEffect(() => {
+    // Log all images whenever invoices change
+    invoices.forEach((inv) => {
+      console.log(`Invoice #${inv.invoiceNumber} images:`);
+      inv.selectedImages?.forEach((img, idx) => {
+        // console.log(`  ${idx + 1}:`, img); // just log the string
+      });
+    });
+  }, [invoices]);
+
   const toggleRow = (id) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
@@ -38,7 +48,6 @@ const InvoiceList = () => {
     }
   };
 
-  // Logic to clear all filters
   const resetFilters = () => {
     setInvoiceNumber("");
     setRefNumber("");
@@ -49,48 +58,41 @@ const InvoiceList = () => {
     setStatusFilter("all");
   };
 
-  // Filtering Logic connected to Sidebar States
- // Filtering Logic connected to Sidebar States
-const filteredInvoices = invoices.filter((inv) => {
-  const name = String(inv.customerName || "").toLowerCase();
-  const phone = String(inv.contactNo || "");
-  const invNo = String(inv.invoiceNumber || "");
-  const ref = String(inv.refNumber || "").toLowerCase();
+  const filteredInvoices = invoices.filter((inv) => {
+    const name = String(inv.customerName || "").toLowerCase();
+    const phone = String(inv.contactNo || "");
+    const invNo = String(inv.invoiceNumber || "");
+    const ref = String(inv.refNumber || "").toLowerCase();
 
-  const matchesName = name.includes(customerName.toLowerCase());
-  const matchesPhone = phone.includes(contactNo);
-  const matchesInv = !invoiceNumber || invNo.includes(invoiceNumber);
-  const matchesRef = !refNumber || ref.includes(refNumber.toLowerCase());
+    const matchesName = name.includes(customerName.toLowerCase());
+    const matchesPhone = phone.includes(contactNo);
+    const matchesInv = !invoiceNumber || invNo.includes(invoiceNumber);
+    const matchesRef = !refNumber || ref.includes(refNumber.toLowerCase());
 
-  // Status logic
-  const status = inv.balanceAmount <= 0 ? "completed" : "pending";
-  const matchesStatus = statusFilter === "all" || status === statusFilter;
+    const status = inv.balanceAmount <= 0 ? "completed" : "pending";
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-  // Date logic: safely parse dates
-  const bookingDate = inv.bookingDate ? new Date(inv.bookingDate) : null;
-  const from = fromDate ? new Date(fromDate) : null;
-  const to = toDate ? new Date(toDate) : null;
+    const bookingDate = inv.bookingDate ? new Date(inv.bookingDate) : null;
+    const from = fromDate ? new Date(fromDate) : null;
+    const to = toDate ? new Date(toDate) : null;
 
-  const matchesFromDate = !from || (bookingDate && bookingDate >= from);
-  const matchesToDate = !to || (bookingDate && bookingDate <= to);
+    const matchesFromDate = !from || (bookingDate && bookingDate >= from);
+    const matchesToDate = !to || (bookingDate && bookingDate <= to);
 
-  return (
-    matchesName &&
-    matchesPhone &&
-    matchesInv &&
-    matchesRef &&
-    matchesStatus &&
-    matchesFromDate &&
-    matchesToDate
-  );
-});
-
-
+    return (
+      matchesName &&
+      matchesPhone &&
+      matchesInv &&
+      matchesRef &&
+      matchesStatus &&
+      matchesFromDate &&
+      matchesToDate
+    );
+  });
 
   return (
-    /* MAIN WRAPPER: 'flex' puts sidebar and content side-by-side */
     <div className="flex bg-gray-100 min-h-screen w-full">
-      {/* 1. SIDEBAR SECTION */}
+      {/* Sidebar */}
       <div className="no-print shrink-0">
         <ServiceFilterBar
           invoiceNumber={invoiceNumber}
@@ -111,7 +113,7 @@ const filteredInvoices = invoices.filter((inv) => {
         />
       </div>
 
-      {/* 2. MAIN CONTENT SECTION: 'flex-1' fills the remaining width */}
+      {/* Main Content */}
       <div className="flex-1 p-4 md:p-8 h-screen overflow-y-auto">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
@@ -124,24 +126,20 @@ const filteredInvoices = invoices.filter((inv) => {
             </h2>
           </div>
 
-          {/* Loading & Error States */}
-          {loading && (
-            <p className="text-center no-print py-10">Loading records...</p>
-          )}
+          {/* Loading & Error */}
+          {loading && <p className="text-center py-10">Loading records...</p>}
           {error && (
-            <p className="text-red-500 text-center no-print py-10">
-              Error: {error}
-            </p>
+            <p className="text-red-500 text-center py-10">Error: {error}</p>
           )}
 
-          {/* Invoice Cards List */}
+          {/* Invoice Cards */}
           <div className="space-y-3">
             {filteredInvoices.map((inv) => (
               <div
                 key={inv._id}
                 className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden"
               >
-                {/* INVOICE CARD HEADER */}
+                {/* Header */}
                 <div
                   className="flex justify-between items-center p-4 bg-white border-b border-gray-200 cursor-pointer hover:bg-gray-50 no-print"
                   onClick={() => toggleRow(inv._id)}
@@ -185,10 +183,10 @@ const filteredInvoices = invoices.filter((inv) => {
                   </div>
                 </div>
 
-                {/* EXPANDED INVOICE DETAILS */}
+                {/* Expanded Details */}
                 {expandedRows[inv._id] && (
                   <div className="p-6 bg-white printable" dir="rtl">
-                    {/* Action Buttons */}
+                    {/* Actions */}
                     <div
                       className="flex justify-between items-center mb-4 no-print"
                       dir="ltr"
@@ -216,7 +214,7 @@ const filteredInvoices = invoices.filter((inv) => {
                       </button>
                     </div>
 
-                    {/* Customer Info Box */}
+                    {/* Customer Info */}
                     <div className="flex justify-between items-center border-2 border-black p-4 rounded-md mb-2 bg-gray-50 print:bg-white">
                       <div className="text-right space-y-1">
                         <p className="text-sm font-bold">
@@ -263,11 +261,11 @@ const filteredInvoices = invoices.filter((inv) => {
                       </div>
                     </div>
 
-                    {/* Measurement Grid */}
+                    {/* Measurements */}
                     <div className="grid grid-cols-9 border-t-2 border-x-2 border-black text-center">
                       {inv.measurements
-                        .slice()
-                        .reverse()
+                        ?.slice()
+                        ?.reverse()
                         .map((m, i) => (
                           <div
                             key={i}
@@ -285,30 +283,37 @@ const filteredInvoices = invoices.filter((inv) => {
 
                     {/* Images and Specifications */}
                     <div className="flex mt-2 border-2 border-black min-h-[160px]">
+                      {/* Images */}
                       <div className="flex-grow grid grid-cols-4 gap-2 p-2 border-l border-black bg-white">
-                        {inv.selectedImages.map((imgName, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-center border border-gray-100 p-1"
-                          >
-                            <img
-                              src={`http://localhost:5000/public/row/${imgName}`}
-                              alt="Design"
-                              loading="eager"
-                              crossOrigin="anonymous"
-                              className="max-h-28 w-auto object-contain"
-                            />
-                          </div>
-                        ))}
+                        {inv.selectedImages?.length > 0 ? (
+                          inv.selectedImages.map((imgObj, idx) => {
+                            console.log("Rendering image data:", imgObj); // CHECK THIS IN CONSOLE
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-center border border-gray-100 p-1"
+                              >
+                                <img
+                                  src={`https://res.cloudinary.com/dzasncsep/image/upload/v1770975904/my_images/${imgObj.url || imgObj}.png`}
+                                  alt="measurement-icon"
+                                  className="max-h-28 w-auto object-contain"
+                                />
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p>No images available</p>
+                        )}
                       </div>
 
+                      {/* Specifications */}
                       <div className="w-1/3 p-3 bg-white">
                         <p className="text-[12px] font-black border-b-2 border-black mb-2 text-center pb-1">
                           خصوصیات
                         </p>
                         <div className="space-y-1.5">
                           {inv.specifications
-                            .filter((s) => s.checked)
+                            ?.filter((s) => s.checked)
                             .map((spec, idx) => (
                               <div
                                 key={idx}
@@ -326,9 +331,8 @@ const filteredInvoices = invoices.filter((inv) => {
                       </div>
                     </div>
 
-                    {/* Totals Section */}
+                    {/* Totals */}
                     <div className="mt-4 border-2 border-black rounded-lg overflow-hidden bg-white shadow-sm">
-                      {/* Customer Identification Header (Added) */}
                       <div className="flex justify-between items-center px-4 py-2 border-b-2 border-black bg-slate-900 text-white print:bg-white print:text-black">
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-black uppercase tracking-widest opacity-60">
@@ -351,7 +355,6 @@ const filteredInvoices = invoices.filter((inv) => {
                         </div>
                       </div>
 
-                      {/* Financial Grid */}
                       <div className="grid grid-cols-3 text-center divide-x-2 divide-black divide-x-reverse">
                         <div className="p-3">
                           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
@@ -361,7 +364,6 @@ const filteredInvoices = invoices.filter((inv) => {
                             Rs. {inv.totalAmount.toLocaleString()}
                           </p>
                         </div>
-
                         <div className="p-3 bg-green-50/50 print:bg-white">
                           <p className="text-[10px] font-bold text-green-700 uppercase tracking-tighter">
                             وصول (Advance)
@@ -370,7 +372,6 @@ const filteredInvoices = invoices.filter((inv) => {
                             Rs. {inv.advanceAmount.toLocaleString()}
                           </p>
                         </div>
-
                         <div className="p-3 bg-red-50/50 print:bg-white">
                           <p className="text-[10px] font-bold text-red-700 uppercase tracking-tighter">
                             بقیہ (Balance)
