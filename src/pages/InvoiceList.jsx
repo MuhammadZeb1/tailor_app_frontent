@@ -50,7 +50,8 @@ const InvoiceList = () => {
   };
 
   // Filtering Logic connected to Sidebar States
- const filteredInvoices = invoices.filter((inv) => {
+ // Filtering Logic connected to Sidebar States
+const filteredInvoices = invoices.filter((inv) => {
   const name = String(inv.customerName || "").toLowerCase();
   const phone = String(inv.contactNo || "");
   const invNo = String(inv.invoiceNumber || "");
@@ -65,10 +66,13 @@ const InvoiceList = () => {
   const status = inv.balanceAmount <= 0 ? "completed" : "pending";
   const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-  // Date logic
-  const bookingDate = new Date(inv.bookingDate);
-  const matchesFromDate = !fromDate || bookingDate >= new Date(fromDate);
-  const matchesToDate = !toDate || bookingDate <= new Date(toDate);
+  // Date logic: safely parse dates
+  const bookingDate = inv.bookingDate ? new Date(inv.bookingDate) : null;
+  const from = fromDate ? new Date(fromDate) : null;
+  const to = toDate ? new Date(toDate) : null;
+
+  const matchesFromDate = !from || (bookingDate && bookingDate >= from);
+  const matchesToDate = !to || (bookingDate && bookingDate <= to);
 
   return (
     matchesName &&
@@ -80,6 +84,7 @@ const InvoiceList = () => {
     matchesToDate
   );
 });
+
 
 
   return (
