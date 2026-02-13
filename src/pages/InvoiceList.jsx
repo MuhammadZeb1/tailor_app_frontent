@@ -50,37 +50,37 @@ const InvoiceList = () => {
   };
 
   // Filtering Logic connected to Sidebar States
-  const filteredInvoices = invoices.filter((inv) => {
-    const matchesName = inv.customerName
-      .toLowerCase()
-      .includes(customerName.toLowerCase());
-    const matchesPhone = inv.contactNo.includes(contactNo);
-    const matchesInv =
-      !invoiceNumber || inv.invoiceNumber.toString().includes(invoiceNumber);
-    const matchesRef =
-      !refNumber ||
-      (inv.refNumber &&
-        inv.refNumber.toLowerCase().includes(refNumber.toLowerCase()));
+ const filteredInvoices = invoices.filter((inv) => {
+  const name = String(inv.customerName || "").toLowerCase();
+  const phone = String(inv.contactNo || "");
+  const invNo = String(inv.invoiceNumber || "");
+  const ref = String(inv.refNumber || "").toLowerCase();
 
-    // Status logic: if balance is 0, it's 'completed', otherwise 'pending'
-    const status = inv.balanceAmount <= 0 ? "completed" : "pending";
-    const matchesStatus = statusFilter === "all" || status === statusFilter;
+  const matchesName = name.includes(customerName.toLowerCase());
+  const matchesPhone = phone.includes(contactNo);
+  const matchesInv = !invoiceNumber || invNo.includes(invoiceNumber);
+  const matchesRef = !refNumber || ref.includes(refNumber.toLowerCase());
 
-    // Date filtering logic
-    const bookingDate = new Date(inv.bookingDate);
-    const matchesFromDate = !fromDate || bookingDate >= new Date(fromDate);
-    const matchesToDate = !toDate || bookingDate <= new Date(toDate);
+  // Status logic
+  const status = inv.balanceAmount <= 0 ? "completed" : "pending";
+  const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-    return (
-      matchesName &&
-      matchesPhone &&
-      matchesInv &&
-      matchesRef &&
-      matchesStatus &&
-      matchesFromDate &&
-      matchesToDate
-    );
-  });
+  // Date logic
+  const bookingDate = new Date(inv.bookingDate);
+  const matchesFromDate = !fromDate || bookingDate >= new Date(fromDate);
+  const matchesToDate = !toDate || bookingDate <= new Date(toDate);
+
+  return (
+    matchesName &&
+    matchesPhone &&
+    matchesInv &&
+    matchesRef &&
+    matchesStatus &&
+    matchesFromDate &&
+    matchesToDate
+  );
+});
+
 
   return (
     /* MAIN WRAPPER: 'flex' puts sidebar and content side-by-side */
