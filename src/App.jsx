@@ -2,7 +2,7 @@ import React from "react";
 import TailoringInvoice from "./pages/TailoringInvoice";
 import InvoiceList from "./pages/InvoiceList";
 import { Route, Routes } from "react-router-dom";
-import UpdateInvoice from "./pages/updateInvoice";
+import UpdateInvoice from "./pages/updateInvoice.jsx";
 import Navbar from "./pages/Navbar";
 import Home from "./pages/Home";
 // import ServiceFilterBar from "./components/ServiceFilterBar";
