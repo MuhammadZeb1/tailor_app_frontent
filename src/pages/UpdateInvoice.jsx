@@ -4,6 +4,20 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchInvoices, updateInvoice } from "../feathures/invoice/invoiceSlice";
 import { fetchImages } from "../feathures/imageSlice";
 
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * UpdateInvoice
+ * 
+ * This component is used to update an existing invoice.
+ * It fetches the images and invoices from the store and
+ * allows the user to update the invoice data and specifications.
+ * 
+ * @param {Object} props - The component properties.
+ * 
+ * @returns {JSX.Element} - The rendered component.
+ * 
+ */
+/*******  77180feb-1009-432d-82ba-14a11b37854d  *******/
 const UpdateInvoice = () => {
   const { id } = useParams();
   const navigate = useNavigate();
