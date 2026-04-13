@@ -48,9 +48,7 @@ const Navbar = () => {
             History
           </NavLink>
 
-          <NavLink to="/backup" className={({ isActive }) => getLinkStyle(isActive)}>
-            Backup
-          </NavLink>
+          
 
           {/* DIVIDER */}
           <div className="h-5 w-[1px] bg-slate-800 mx-2"></div>
