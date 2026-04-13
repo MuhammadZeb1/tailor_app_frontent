@@ -56,25 +56,41 @@ const InvoiceList = () => {
   };
 
   const filteredInvoices = invoices.filter((inv) => {
-    const matchesName = inv.customerName
+    // 1. Text & Number Matches (with Safety Checks)
+    const matchesName = (inv.customerName || "")
       .toLowerCase()
       .includes(customerName.toLowerCase());
-    const matchesPhone = inv.contactNo.includes(contactNo);
+
+    const matchesPhone = (inv.contactNo || "").includes(contactNo);
+
     const matchesInv =
-      !invoiceNumber || inv.invoiceNumber.toString().includes(invoiceNumber);
+      !invoiceNumber ||
+      (inv.invoiceNumber &&
+        inv.invoiceNumber.toString().includes(invoiceNumber));
+
+    // Fix for refNumber (Important because 0 is a "falsy" value in JS)
     const matchesRef =
       !refNumber ||
-      (inv.refNumber &&
-        inv.refNumber
-          .toString()
-          .toLowerCase()
-          .includes(refNumber.toLowerCase()));
+      (inv.refNumber !== undefined &&
+        inv.refNumber !== null &&
+        inv.refNumber.toString().includes(refNumber));
 
+    // 2. Status Logic
     const status = inv.balanceAmount <= 0 ? "completed" : "pending";
     const matchesStatus = statusFilter === "all" || status === statusFilter;
-    const bookingDate = new Date(inv.bookingDate);
-    const matchesFromDate = !fromDate || bookingDate >= new Date(fromDate);
-    const matchesToDate = !toDate || bookingDate <= new Date(toDate);
+
+    // 3. Normalized Date Filtering (Fixes the "Hidden Record" problem)
+    const recordDate = new Date(inv.bookingDate);
+    recordDate.setHours(0, 0, 0, 0); // Reset record time to midnight
+
+    const start = fromDate ? new Date(fromDate) : null;
+    if (start) start.setHours(0, 0, 0, 0);
+
+    const end = toDate ? new Date(toDate) : null;
+    if (end) end.setHours(0, 0, 0, 0);
+
+    const matchesFromDate = !start || recordDate >= start;
+    const matchesToDate = !end || recordDate <= end;
 
     return (
       matchesName &&
@@ -156,7 +172,7 @@ const InvoiceList = () => {
                 <div
                   className="flex justify-between items-center p-3 bg-white cursor-pointer no-print select-none group"
                   onClick={() => toggleRow(inv._id)}
-                > 
+                >
                   <div className="flex gap-4 items-center">
                     <div className="bg-slate-900 px-5 py-2 rounded-2xl text-white text-center shadow-lg group-hover:bg-amber-500 transition-colors">
                       <p className="text-[9px] uppercase font-black tracking-tighter opacity-70 group-hover:text-slate-900">
@@ -190,8 +206,18 @@ const InvoiceList = () => {
                     <div
                       className={`h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 transition-all duration-300 ${expandedRows[inv._id] ? "rotate-180 bg-slate-900 text-white" : "text-slate-400 group-hover:bg-slate-200"}`}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="3"
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -227,8 +253,18 @@ const InvoiceList = () => {
                         className="bg-amber-500 text-slate-900 px-10 py-3 rounded-2xl font-black text-[10px] hover:bg-slate-900 hover:text-white transition-all uppercase tracking-[2px] flex items-center gap-3 shadow-lg shadow-amber-100"
                       >
                         <span>Print Invoice</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="3"
+                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -236,8 +272,12 @@ const InvoiceList = () => {
                     {/* Receipt Header Component */}
                     <div className="mb-6">
                       <TailoringHeader
-                        bookingDate={inv.bookingDate}
-                        deliveryDate={inv.deliveryDate}
+                        bookingDate={
+                          new Date(inv.bookingDate).toISOString().split("T")[0]
+                        }
+                        deliveryDate={
+                          new Date(inv.deliveryDate).toISOString().split("T")[0]
+                        }
                         customerName={inv.customerName}
                         contactNo={inv.contactNo}
                         refNo={inv.refNumber}
@@ -268,7 +308,10 @@ const InvoiceList = () => {
                     </div>
 
                     {/* Design & Specs Grid */}
-                    <div className="flex flex-col lg:flex-row gap-4 mt-4 items-stretch" dir="rtl">
+                    <div
+                      className="flex flex-col lg:flex-row gap-4 mt-4 items-stretch"
+                      dir="rtl"
+                    >
                       <div className="flex-grow flex flex-col gap-4">
                         {/* Canvas Area */}
                         <div

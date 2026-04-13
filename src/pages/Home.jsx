@@ -1,228 +1,194 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react"; // Added useState
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchInvoices } from "../feathures/invoice/invoiceSlice";
 import { 
-  FaPlus, 
-  FaHistory, 
-  FaFileInvoiceDollar, 
-  FaWallet, 
-  FaClock, 
-  FaCheckCircle,
-  FaArrowRight
+  FaPlus, FaFileInvoiceDollar, 
+  FaExclamationTriangle, FaClock, FaCheckCircle, FaArrowRight, FaCalendarAlt, FaTimes
 } from "react-icons/fa";
 
 const Home = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { invoices, loading } = useSelector((state) => state.invoice);
+  
+  // --- NEW STATE: Track which filter is active ---
+  const [activeFilter, setActiveFilter] = useState("All");
 
-  // Auto-fetch data when home opens to keep stats fresh
   useEffect(() => {
     dispatch(fetchInvoices());
   }, [dispatch]);
 
-  // Advanced Business Calculations
-  const totalInvoices = invoices?.length || 0;
-  const pendingInvoices = invoices?.filter(inv => inv.balanceAmount > 0) || [];
-  const completedInvoicesCount = totalInvoices - pendingInvoices.length;
-  
-  const totalBalanceDue = pendingInvoices.reduce((acc, inv) => acc + (inv.balanceAmount || 0), 0);
+  const calculateStatus = (inv) => {
+    if (inv.balanceAmount <= 0 && inv.totalAmount > 0) return "Completed";
+    if (!inv.deliveryDate) return "Upcoming";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const delivery = new Date(inv.deliveryDate);
+    delivery.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((delivery - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "Overdue";
+    if (diffDays <= 2) return "Urgent";
+    return "Upcoming";
+  };
+
+  const getSmartStats = () => {
+    if (!invoices) return { overdue: [], urgent: [], upcoming: [], completed: [] };
+    return invoices.reduce((acc, inv) => {
+      const status = inv.smartStatus || calculateStatus(inv);
+      if (status === "Overdue") acc.overdue.push(inv);
+      else if (status === "Urgent") acc.urgent.push(inv);
+      else if (status === "Completed") acc.completed.push(inv);
+      else acc.upcoming.push(inv);
+      return acc;
+    }, { overdue: [], urgent: [], upcoming: [], completed: [] });
+  };
+
+  const smartData = getSmartStats();
   const totalRevenue = invoices?.reduce((acc, inv) => acc + (inv.totalAmount || 0), 0) || 0;
 
+  // --- LOGIC: Filter the table data based on card click ---
+  const filteredInvoices = invoices?.filter(inv => {
+    if (activeFilter === "All") return true;
+    const status = inv.smartStatus || calculateStatus(inv);
+    return status === activeFilter;
+  });
+
   const stats = [
-    { label: "Total Revenue", value: `Rs. ${totalRevenue.toLocaleString()}`, icon: FaFileInvoiceDollar, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Pending Balance", value: `Rs. ${totalBalanceDue.toLocaleString()}`, icon: FaWallet, color: "text-red-600", bg: "bg-red-50" },
-    { label: "Pending Orders", value: pendingInvoices.length, icon: FaClock, color: "text-amber-600", bg: "bg-amber-50" },
-    { label: "Completed", value: completedInvoicesCount, icon: FaCheckCircle, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Overdue Orders", value: smartData.overdue.length, icon: FaExclamationTriangle, color: "text-red-600", bg: "bg-red-50", filterType: "Overdue" },
+    { label: "Urgent (48h)", value: smartData.urgent.length, icon: FaClock, color: "text-orange-600", bg: "bg-orange-50", filterType: "Urgent" },
+    { label: "Completed", value: smartData.completed.length, icon: FaCheckCircle, color: "text-blue-600", bg: "bg-blue-50", filterType: "Completed" },
+    { label: "Total Revenue", value: `Rs. ${totalRevenue.toLocaleString()}`, icon: FaFileInvoiceDollar, color: "text-emerald-600", bg: "bg-emerald-50", filterType: "All" },
   ];
 
   return (
     <div className="min-h-screen bg-slate-100 p-6 md:p-10 font-sans">
-  <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-    {/* HEADER */}
-    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-      <div>
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-        POPULAR fabrices & tailoring
-        </h1>
-        <p className="text-slate-500 text-sm">
-          Manage your tailoring business efficiently
-        </p>
-      </div>
-
-      <button
-        onClick={() => navigate("/create-invoice")}
-        className="bg-slate-900 hover:bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all"
-      >
-        + New Invoice
-      </button>
-    </div>
-
-    {/* STATS ROW */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {stats.map((stat, i) => (
-        <div
-          key={i}
-          className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center gap-3"
-        >
-          <div className={`${stat.bg} ${stat.color} p-3 rounded-lg text-lg`}>
-            <stat.icon />
-          </div>
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[10px] uppercase text-slate-400 font-bold">
-              {stat.label}
-            </p>
-            <h3 className="text-lg font-black text-slate-900">
-              {loading ? "..." : stat.value}
-            </h3>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase italic">
+              Popular <span className="text-blue-600 font-light">Fabrics</span>
+            </h1>
+            <p className="text-slate-500 text-sm font-medium">Smart Tailoring Management Dashboard</p>
           </div>
+          <button
+            onClick={() => navigate("/create-invoice")}
+            className="bg-slate-900 hover:scale-105 text-white px-8 py-4 rounded-2xl font-black shadow-xl transition-all flex items-center gap-2"
+          >
+            <FaPlus /> NEW INVOICE
+          </button>
         </div>
-      ))}
-    </div>
 
-    {/* MAIN GRID */}
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      {/* LEFT PANEL */}
-      <div className="space-y-6">
-
-        {/* ACTION CARD */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h2 className="text-xs font-bold text-slate-400 uppercase mb-4">
-            Quick Actions
-          </h2>
-
-          <div className="space-y-3">
-            <button
-              onClick={() => navigate("/create-invoice")}
-              className="w-full flex justify-between items-center bg-slate-900 text-white p-4 rounded-lg"
+        {/* STATS ROW - Now clickable */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {stats.map((stat, i) => (
+            <div 
+              key={i} 
+              onClick={() => setActiveFilter(stat.filterType)}
+              className={`cursor-pointer border-2 transition-all rounded-2xl p-5 shadow-sm active:scale-95
+                ${activeFilter === stat.filterType ? 'border-slate-900 bg-white ring-4 ring-slate-900/5' : 'border-white bg-white hover:border-slate-200'}`}
             >
-              New Invoice <FaPlus />
-            </button>
-
-            <button
-              onClick={() => navigate("/invoices")}
-              className="w-full flex justify-between items-center border border-slate-300 p-4 rounded-lg"
-            >
-              View All <FaHistory />
-            </button>
-          </div>
+              <div className={`${stat.bg} ${stat.color} w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-xl`}>
+                <stat.icon />
+              </div>
+              <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">{stat.label}</p>
+              <h3 className="text-2xl font-black text-slate-900 leading-none mt-1">
+                {loading ? "..." : stat.value}
+              </h3>
+            </div>
+          ))}
         </div>
 
-        {/* SUMMARY CARD */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-          <h2 className="text-xs font-bold text-slate-400 uppercase mb-3">
-            Summary
-          </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+               {/* Simplified Priority Info */}
+               <h2 className="text-lg font-black mb-1">Status View</h2>
+               <p className="text-slate-400 text-xs mb-4">Currently viewing: <span className="text-white font-bold">{activeFilter}</span></p>
+               <button 
+                 onClick={() => setActiveFilter("All")}
+                 className="relative z-10 text-[10px] bg-white/20 px-3 py-1 rounded-full font-bold uppercase tracking-widest hover:bg-white/30 transition-all"
+               >
+                 Clear Filter
+               </button>
+               <div className="absolute -bottom-4 -right-4 text-white/5 text-8xl rotate-12"><FaExclamationTriangle /></div>
+            </div>
+          </div>
 
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Total Orders</span>
-              <span className="font-bold">{totalInvoices}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Completed</span>
-              <span className="font-bold text-emerald-600">
-                {completedInvoicesCount}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Pending</span>
-              <span className="font-bold text-amber-600">
-                {pendingInvoices.length}
-              </span>
+          <div className="lg:col-span-2">
+            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">
+                    {activeFilter === "All" ? "Live Status Tracker" : `${activeFilter} Orders`}
+                  </h2>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+                    {filteredInvoices?.length || 0} orders found
+                  </p>
+                </div>
+                {activeFilter !== "All" && (
+                  <button 
+                    onClick={() => setActiveFilter("All")}
+                    className="flex items-center gap-1 text-xs font-black text-red-500 bg-red-50 px-3 py-1 rounded-full hover:bg-red-100"
+                  >
+                    <FaTimes size={10} /> RESET
+                  </button>
+                )}
+              </div>
+
+              <div className="overflow-x-auto min-h-[300px]">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                    <tr>
+                      <th className="px-6 py-4">Customer</th>
+                      <th className="px-6 py-4">Delivery</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredInvoices?.length > 0 ? (
+                      filteredInvoices.map((inv) => {
+                        const currentStatus = inv.smartStatus || calculateStatus(inv);
+                        return (
+                          <tr key={inv._id} onClick={() => navigate("/invoices")} className="hover:bg-slate-50 cursor-pointer transition-colors group">
+                            <td className="px-6 py-4">
+                              <p className="font-black text-slate-800 group-hover:text-blue-600 uppercase">{inv.customerName}</p>
+                              <p className="text-[10px] text-slate-400 font-bold tracking-widest">#00{inv.invoiceNumber}</p>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-600">
+                              {inv.deliveryDate ? new Date(inv.deliveryDate).toLocaleDateString() : 'NO DATE'}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter
+                                ${currentStatus === 'Overdue' ? 'bg-red-100 text-red-600 border border-red-200' : 
+                                  currentStatus === 'Urgent' ? 'bg-orange-100 text-orange-600 border border-orange-200' : 
+                                  currentStatus === 'Completed' ? 'bg-emerald-100 text-emerald-600 border border-emerald-200' : 
+                                  'bg-blue-100 text-blue-600 border border-blue-200'}`}>
+                                {currentStatus}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-black text-slate-900">Rs. {inv.balanceAmount?.toLocaleString()}</td>
+                          </tr>
+                        )
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-xs">
+                          No {activeFilter} orders found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-
       </div>
-
-      {/* RIGHT SIDE */}
-      <div className="lg:col-span-2">
-
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-
-          {/* HEADER */}
-          <div className="flex justify-between items-center p-4 border-b border-slate-100">
-            <h2 className="text-sm font-bold text-slate-700">
-              Recent Invoices
-            </h2>
-
-            <button
-              onClick={() => navigate("/invoices")}
-              className="text-xs text-slate-500 hover:text-black flex items-center gap-1"
-            >
-              View All <FaArrowRight />
-            </button>
-          </div>
-
-          {/* TABLE */}
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-400 uppercase">
-              <tr>
-                <th className="p-3 text-left">Customer</th>
-                <th className="p-3 text-left">Invoice</th>
-                <th className="p-3 text-left">Balance</th>
-                <th className="p-3 text-left">Status</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-100">
-              {invoices?.slice(0, 5).map((inv) => (
-                <tr
-                  key={inv._id}
-                  onClick={() => navigate("/invoices")}
-                  className="hover:bg-slate-50 cursor-pointer"
-                >
-                  <td className="p-3">
-                    <p className="font-bold">{inv.customerName}</p>
-                    <p className="text-xs text-slate-400">
-                      {inv.contactNo}
-                    </p>
-                  </td>
-
-                  <td className="p-3 text-xs font-mono">
-                    #{inv.invoiceNumber}
-                  </td>
-
-                  <td className="p-3 font-bold">
-                    Rs. {inv.balanceAmount}
-                  </td>
-
-                  <td className="p-3">
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        inv.balanceAmount > 0
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-emerald-100 text-emerald-700"
-                      }`}
-                    >
-                      {inv.balanceAmount > 0 ? "Pending" : "Paid"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-
-              {!invoices?.length && (
-                <tr>
-                  <td colSpan="4" className="text-center p-6 text-slate-400">
-                    No data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-        </div>
-
-      </div>
-
     </div>
-  </div>
-</div>
-
   );
 };
 

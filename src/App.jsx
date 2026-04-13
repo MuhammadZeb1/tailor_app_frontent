@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Tracker from "./pages/Tracker.jsx";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/create-invoice" element={<TailoringInvoice />} />
         <Route path="/invoices" element={<InvoiceList />} />
         <Route path="/update-invoice/:id" element={<UpdateInvoice />} />
+        <Route path="/tracker" element={<Tracker/>} />
         <Route path="*" element={<h2>Page Not Found</h2>} />
       </Routes>
     </>
