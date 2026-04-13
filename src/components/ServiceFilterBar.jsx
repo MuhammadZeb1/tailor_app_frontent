@@ -8,6 +8,7 @@ import {
   FaLayerGroup,
   FaClock,
   FaCheckCircle,
+  FaArrowRight,
 } from "react-icons/fa";
 
 const ServiceFilterBar = ({
@@ -25,52 +26,40 @@ const ServiceFilterBar = ({
   setToDate,
   statusFilter,
   setStatusFilter,
-  onReset, // Receiving the reset function from Parent
+  onReset,
 }) => {
-  // Shared Tailwind Classes
-  const inputContainer = "relative group";
+  const inputContainer = "relative group mb-3";
   const iconStyle =
-    "absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors";
+    "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400";
   const inputStyle =
-    "w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all";
+    "w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black text-sm";
 
   return (
-    <div className="w-72 bg-slate-900 border-r border-slate-800 p-5 shadow-2xl h-screen sticky top-0 overflow-y-auto custom-scrollbar">
+    <div className="w-72 bg-white border-r border-gray-200 p-6 h-screen sticky top-0 overflow-y-auto">
       
-      {/* 1. QUICK SEARCH SECTION */}
+      {/* HEADER */}
       <div className="mb-8">
-        <h2 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">
-          Quick Search
+        <h1 className="text-xl font-bold text-black">Filters</h1>
+        <p className="text-xs text-gray-500 mt-1">
+          Service Management System
+        </p>
+      </div>
+
+      {/* SEARCH SECTION */}
+      <div className="mb-8">
+        <h2 className="text-gray-500 text-xs font-semibold uppercase mb-4">
+          Search Details
         </h2>
-        <div className="space-y-3">
+
+        <div className="space-y-2">
           {[
-            {
-              icon: FaHashtag,
-              placeholder: "Invoice #",
-              value: invoiceNumber,
-              setter: setInvoiceNumber,
-            },
-            {
-              icon: FaFileInvoice,
-              placeholder: "Ref Number",
-              value: refNumber,
-              setter: setRefNumber,
-            },
-            {
-              icon: FaUser,
-              placeholder: "Customer Name",
-              value: customerName,
-              setter: setCustomerName,
-            },
-            {
-              icon: FaPhone,
-              placeholder: "Contact Info",
-              value: contactNo,
-              setter: setContactNo,
-            },
+            { icon: FaHashtag, placeholder: "Invoice #", value: invoiceNumber, setter: setInvoiceNumber },
+            { icon: FaFileInvoice, placeholder: "Ref Number", value: refNumber, setter: setRefNumber },
+            { icon: FaUser, placeholder: "Customer Name", value: customerName, setter: setCustomerName },
+            { icon: FaPhone, placeholder: "Contact Number", value: contactNo, setter: setContactNo },
           ].map((item, idx) => (
             <div className={inputContainer} key={idx}>
-              <item.icon className={iconStyle} size={14} />
+              <item.icon className={iconStyle} size={12} />
               <input
                 type="text"
                 placeholder={item.placeholder}
@@ -83,68 +72,71 @@ const ServiceFilterBar = ({
         </div>
       </div>
 
-      {/* 2. DATE RANGE SECTION */}
+      {/* DATE RANGE */}
       <div className="mb-8">
-        <h2 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">
-          Date Range
+        <h2 className="text-gray-500 text-xs font-semibold uppercase mb-4">
+          Booking Period
         </h2>
-        <div className="flex items-center gap-2">
-          {[
-            { placeholder: "From", value: fromDate, setter: setFromDate },
-            { placeholder: "To", value: toDate, setter: setToDate },
-          ].map((item, idx) => (
-            <div className="relative flex-1 group" key={idx}>
-              <FaCalendarAlt className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 text-[12px] transition-colors" />
-              <input
-                type="date"
-                value={item.value}
-                onChange={(e) => item.setter(e.target.value)}
-                className="w-full pl-2 pr-2 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none transition-all [color-scheme:dark]"
-              />
-            </div>
-          ))}
+
+        <div className="space-y-3">
+          <div className="relative">
+            <FaCalendarAlt className={iconStyle} size={12} />
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className={inputStyle}
+            />
+          </div>
+
+          <div className="flex justify-center text-gray-400">
+            <FaArrowRight className="rotate-90" size={10} />
+          </div>
+
+          <div className="relative">
+            <FaCalendarAlt className={iconStyle} size={12} />
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className={inputStyle}
+            />
+          </div>
         </div>
       </div>
 
-      {/* 3. STATUS SECTION */}
-      <div>
-        <label className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 block">
+      {/* STATUS */}
+      <div className="mb-8">
+        <h2 className="text-gray-500 text-xs font-semibold uppercase mb-4">
           Status
-        </label>
-        <div className="relative group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            {statusFilter === "all" && <FaLayerGroup className="text-indigo-400" size={14} />}
-            {statusFilter === "pending" && <FaClock className="text-amber-400" size={14} />}
-            {statusFilter === "completed" && <FaCheckCircle className="text-emerald-400" size={14} />}
+        </h2>
+
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+            {statusFilter === "all" && <FaLayerGroup size={12} />}
+            {statusFilter === "pending" && <FaClock size={12} />}
+            {statusFilter === "completed" && <FaCheckCircle size={12} />}
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all cursor-pointer"
+            className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-black text-sm focus:outline-none focus:ring-1 focus:ring-black"
           >
-            <option value="all" className="bg-slate-900 text-white">All Services</option>
-            <option value="pending" className="bg-slate-900 text-white">Pending</option>
-            <option value="completed" className="bg-slate-900 text-white">Completed</option>
+            <option value="all">Show All</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
           </select>
-
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
         </div>
       </div>
 
-      {/* 4. RESET BUTTON SECTION */}
-      <div className="mt-10 pt-6 border-t border-slate-800">
-        <button
-          onClick={onReset}
-          className="w-full py-2 flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all border border-transparent hover:border-slate-700 uppercase font-bold tracking-tighter"
-        >
-          <span>↺</span> Reset All Filters
-        </button>
-      </div>
+      {/* RESET */}
+      <button
+        onClick={onReset}
+        className="w-full py-2.5 border border-gray-300 text-black text-sm hover:bg-black hover:text-white transition"
+      >
+        Reset Filters
+      </button>
     </div>
   );
 };

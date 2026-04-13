@@ -1,14 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchImages } from "../feathures/imageSlice";
-import { createInvoice, resetInvoiceState } from "../feathures/invoice/invoiceSlice";
+import { createInvoice } from "../feathures/invoice/invoiceSlice";
+import { toast } from "react-toastify";
+import DesignCanvas from "../components/DesignCanvas";
+import StyleIcon from "../components/StyleIcon";
+import TailoringHeader from "../components/TailoringHeader";
+import PaymentSummary from "../components/PaymentSummary";
+import FormActions from "../components/FormActions";
+import AdditionalNotes from "../components/AdditionalNotes";
 
 const TailoringInvoice = () => {
   const dispatch = useDispatch();
-  
-  const { rows } = useSelector((state) => state.images);
-  const { loading: invoiceLoading, success, currentInvoice } = useSelector((state) => state.invoice);
 
+  // --- UPDATED DESIGN STATE TO ARRAY ---
+  const [droppedItems, setDroppedItems] = useState([]);
+
+  // Data States
+  const { rows } = useSelector((state) => state.images);
+  const {
+    loading: invoiceLoading,
+    success,
+    currentInvoice,
+  } = useSelector((state) => state.invoice);
+
+  const [tadad, setTadad] = useState(1);
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [refNo, setRefNo] = useState("");
@@ -16,25 +34,25 @@ const TailoringInvoice = () => {
   const [contactNo, setContactNo] = useState("");
   const [totalAmount, setTotalAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
-  const balanceAmount = totalAmount - advanceAmount;
-  const [selectedImages, setSelectedImages] = useState([]);
-  
+  const balanceAmount =
+    (Number(totalAmount) || 0) - (Number(advanceAmount) || 0);
+
   const [measurements, setMeasurements] = useState([
-    { label: "لمبائی (Length)", value: "", placeholder: "لمبائی", type: "number" },
-    { label: "تیرا (Shoulder)", value: "", placeholder: "تیرا", type: "number" },
-    { label: "آستین (Sleeve)", value: "", placeholder: "آستین", type: "number" },
-    { label: "کالر (Collar)", value: "", placeholder: "کالر", type: "number" },
-    { label: "چھاتی (Chest)", value: "", placeholder: "چھاتی", type: "number" },
-    { label: "کمر (Waist)", value: "", placeholder: "کمر", type: "number" },
-    { label: "دامن (Daman)", value: "", placeholder: "دامن", type: "number" },
-    { label: "شلوار (Shalwar)", value: "", placeholder: "شلوار", type: "number" },
-    { label: "پانچہ (Ankle)", value: "", placeholder: "پانچہ", type: "number" },
+    { label: "لمبائی ", value: "", placeholder: "لمبائی", type: "number" },
+    { label: "تیرا ", value: "", placeholder: "تیرا", type: "number" },
+    { label: "آستین ", value: "", placeholder: "آستین", type: "number" },
+    { label: "کالر ", value: "", placeholder: "کالر", type: "number" },
+    { label: "چھاتی ", value: "", placeholder: "چھاتی", type: "number" },
+    { label: "کمر ", value: "", placeholder: "کمر", type: "number" },
+    { label: "دامن ", value: "", placeholder: "دامن", type: "number" },
+    { label: "شلوار ", value: "", placeholder: "شلوار", type: "number" },
+    { label: "پانچہ ", value: "", placeholder: "پانچہ", type: "number" },
   ]);
 
   const [specs, setSpecs] = useState([
     { label: "جیب پٹی - ڈبل سلائی", checked: false },
     { label: "ڈبل دھاگہ سنگل سلائی", checked: false },
-    { label: "ڈبل سلائی", checked: true },
+    { label: "ڈبل سلائی", checked: false },
     { label: "ڈبل دھاگہ ڈبل سلائی", checked: false },
     { label: "3x3 سلائی", checked: false },
     { label: "3x3 ڈبل دھاگہ سلائی", checked: false },
@@ -48,24 +66,16 @@ const TailoringInvoice = () => {
     { label: "سلکی تار ٹرپل سلائی", checked: false },
   ]);
 
-  useEffect(() => { 
-    dispatch(fetchImages()); 
+  useEffect(() => {
+    dispatch(fetchImages());
   }, [dispatch]);
 
   useEffect(() => {
     if (success && currentInvoice) {
-      const timer = setTimeout(() => {
-        window.print();
-      }, 800); 
+      const timer = setTimeout(() => window.print(), 800);
       return () => clearTimeout(timer);
     }
-  }, [success, currentInvoice, dispatch]);
-
-  const toggleSelection = (name) => {
-    setSelectedImages((prev) => 
-      prev.includes(name) ? prev.filter((i) => i !== name) : [...prev, name]
-    );
-  };
+  }, [success, currentInvoice]);
 
   const handleChange = (index, newValue) => {
     const updated = [...measurements];
@@ -74,12 +84,16 @@ const TailoringInvoice = () => {
   };
 
   const toggleSpec = (index) => {
-    setSpecs((prev) => prev.map((item, i) => i === index ? { ...item, checked: !item.checked } : item));
+    setSpecs((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, checked: !item.checked } : item,
+      ),
+    );
   };
 
   const handleSaveInvoice = () => {
     if (!customerName || !contactNo) {
-      alert("Please fill in Name and Contact Number");
+      toast.error("Please fill in Name and Contact Number");
       return;
     }
 
@@ -87,160 +101,226 @@ const TailoringInvoice = () => {
       refNumber: Number(refNo) || 0,
       customerName,
       contactNo,
-      bookingDate: bookingDate || new Date().toISOString().split('T')[0],
+      customerAddress,
+      additionalNotes,
+      tadad: Number(tadad) || 1,
+
+      bookingDate: bookingDate || new Date().toISOString().split("T")[0],
       deliveryDate,
-      measurements: measurements.map(m => ({ label: m.label, value: String(m.value) })),
-      specifications: specs.filter((s) => s.checked).map((s) => ({ label: s.label, checked: true })),
-      selectedImages,
+      measurements: measurements.map((m) => ({
+        label: m.label,
+        value: String(m.value),
+      })),
+      specifications: specs
+        .filter((s) => s.checked)
+        .map((s) => ({ label: s.label, checked: true })),
+      designLayers: droppedItems.map((item) => ({
+        name: item.name,
+        url: item.url,
+        x: item.x,
+        y: item.y,
+        markers: item.markers || [],
+      })),
       totalAmount: Number(totalAmount),
       advanceAmount: Number(advanceAmount),
-      balanceAmount: Number(balanceAmount),
+      balanceAmount: balanceAmount,
     };
 
-    dispatch(createInvoice(invoiceData));
+    // DEBUG: Log this to see your actual data in the console
+    console.log("Sending Invoice Data:", invoiceData);
+
+    dispatch(createInvoice(invoiceData))
+      .unwrap()
+      .then((res) => {
+        toast.success("Invoice created successfully!");
+      })
+      .catch((err) => {
+        toast.error(err || "Failed to create invoice");
+      });
   };
 
   return (
-    <div className="min-h-screen py-10 flex items-center bg-gray-50 print:bg-white print:py-0">
-      <div className="printable max-w-4xl w-full mx-auto p-4 bg-white border border-gray-800 text-[12px] font-sans shadow-lg print:shadow-none print:border-2 print:m-0" dir="rtl">
-
-        {/* Header Section */}
-        <div className="flex justify-between items-start border-2 border-gray-800 rounded-xl p-3 mb-2 gap-4">
-          <div className="text-right space-y-2">
-            <div className="flex items-center gap-2">
-              <label className="font-bold w-24">تاریخ بکنگ:</label>
-              <input type="date" className="border-b border-gray-300 outline-none print:border-none" onChange={(e) => setBookingDate(e.target.value)} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="font-bold w-24">تاریخ واپسی:</label>
-              <input type="date" className="border-b border-gray-300 outline-none print:border-none" onChange={(e) => setDeliveryDate(e.target.value)} />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="font-bold w-24">فون نمبر:</label>
-              <input type="text" value={contactNo} onChange={(e) => setContactNo(e.target.value)} className="border-b border-gray-800 focus:outline-none w-32 print:border-none font-bold" />
-            </div>
-          </div>
-
-          <div className="space-y-2 text-left" dir="ltr">
-            <p className="flex items-center gap-2 justify-end">
-              <label className="font-bold text-gray-800">Inv.No.</label>
-              <span className="border-b border-gray-800 w-24 text-center font-bold text-lg text-blue-800 print:text-black">
-                {currentInvoice?.invoiceNumber || (invoiceLoading ? "Saving..." : "Auto")}
-              </span>
-            </p>
-            <p className="flex items-center gap-2 justify-end">
-              <label className="font-bold">Ref.No.</label>
-              <input type="number" value={refNo} onChange={(e) => setRefNo(e.target.value)} className="border-b border-gray-800 focus:outline-none w-16 text-center font-bold" />
-            </p>
-            <p className="flex items-center gap-2 justify-end">
-              <label className="font-bold">Name</label>
-              <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="border-b border-gray-800 focus:outline-none w-32 px-1 text-right font-bold" />
-            </p>
-          </div>
+    <div className="min-h-screen py-5 flex items-start bg-slate-100 print:bg-white print:py-0 px-4">
+      {/* SIDEBAR: Style Selection */}
+      <div className="no-print w-64 sticky top-5 mr-4 bg-white p-4 rounded-2xl shadow-xl border border-slate-200 h-[90vh] overflow-y-auto">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center">
+          Drag Styles
+        </h2>
+        <div className="grid grid-cols-2 gap-2">
+          {rows &&
+            Object.keys(rows).map((row) =>
+              rows[row].map((img) => <StyleIcon key={img.name} img={img} />),
+            )}
         </div>
+      </div>
+
+      {/* MAIN INVOICE */}
+      <div
+        className="printable max-w-4xl w-full mx-auto p-4 bg-white border-t-[10px] border-slate-900 text-[9px] font-sans shadow-2xl print:shadow-none print:border-t-0 print:m-0"
+        dir="rtl"
+      >
+        <TailoringHeader
+          bookingDate={bookingDate}
+          setBookingDate={setBookingDate}
+          deliveryDate={deliveryDate}
+          setDeliveryDate={setDeliveryDate}
+          contactNo={contactNo}
+          setContactNo={setContactNo}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          refNo={refNo}
+          setRefNo={setRefNo}
+          customerAddress={customerAddress}
+          setCustomerAddress={setCustomerAddress}
+          invoiceNumber={currentInvoice?.invoiceNumber}
+        />
 
         {/* Measurements Grid */}
-        <div className="grid grid-cols-9 border-t-2 border-x-2 border-gray-800">
-          {measurements.slice().reverse().map((item, index) => (
-            <div key={index} className="border-b-2 border-l-2 border-gray-800 text-center">
-              <div className="bg-gray-100 py-1 font-bold border-b border-gray-800 text-[10px]">{item.label}</div>
-              <input 
-                type={item.type} 
-                value={item.value} 
-                onChange={(e) => handleChange(measurements.length - 1 - index, e.target.value)} 
-                className="py-2 px-1 text-lg font-bold w-full text-center focus:outline-none bg-transparent" 
+        <div className="grid grid-cols-9 border-2 border-slate-900 rounded-xl overflow-hidden shadow-sm">
+          {measurements
+            .slice()
+            .reverse()
+            .map((item, index) => (
+              <div
+                key={index}
+                className="border-l text-black border-slate-200 last:border-l-0 text-center"
+              >
+                <div className="bg-slate-900 py-2 font-bold text-[9px] uppercase tracking-wider">
+                  {item.label}
+                </div>
+                <input
+                  type={item.type}
+                  value={item.value}
+                  onChange={(e) =>
+                    handleChange(
+                      measurements.length - 1 - index,
+                      e.target.value,
+                    )
+                  }
+                  className="py-2 px-1 text-xl font-black w-full text-center focus:bg-amber-50 focus:outline-none bg-transparent"
+                />
+              </div>
+            ))}
+        </div>
+
+        {/* --- UPDATED CANVAS & SPECS SECTION --- */}
+        {/* --- Main Section Wrapper --- */}
+        <div className="flex gap-2 mt-2 items-stretch min-h-[100px]">
+          {/* LEFT COLUMN: Canvas + Notes */}
+          <div className="flex-grow flex flex-col gap-2">
+            {" "}
+            {/* Added flex-col and gap here */}
+            {/* 1. Design Canvas Area */}
+            <div className="w-full">
+              <DesignCanvas
+                droppedItems={droppedItems}
+                setDroppedItems={setDroppedItems}
               />
             </div>
-          ))}
-        </div>
+            {/* 2. Additional Notes Area (Stacked Vertically) */}
+            <div className="w-full">
+              <AdditionalNotes
+                notes={additionalNotes}
+                setNotes={setAdditionalNotes}
+              />
+            </div>
+          </div>
 
-        {/* Styles & Specifications */}
-        <div className="flex border-2 border-gray-800 mt-2 min-h-[200px]">
-          <div className="flex-grow grid grid-cols-4 gap-2 p-2 border-l border-gray-800 bg-gray-50 print:bg-white">
-            {rows && Object.keys(rows).map((row) => rows[row].map((img) => (
-              <div key={img.name} onClick={() => toggleSelection(img.name)} 
-                className={`relative border-2 p-1 flex flex-col items-center rounded cursor-pointer ${selectedImages.includes(img.name) ? "border-blue-600 bg-blue-100 print:border-black" : "border-transparent print:hidden"}`}>
-                <img src={img.url} alt={img.name} loading="eager" crossOrigin="anonymous" className="w-14 h-14 object-contain" />
+          {/* RIGHT COLUMN: Specs Checklist (Remains as is) */}
+          <div className="w-1/3 p-4 border-2 border-slate-900 rounded-2xl h-fit">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">
+              Specifications
+            </h3>
+            <div className="flex flex-col gap-1">
+              {specs.map((item, index) => (
+                <label
+                  key={item.label}
+                  className={`flex justify-between items-center py-1 px-2 rounded transition-colors
+            ${!item.checked ? "print:hidden" : "bg-slate-50/50 print:bg-transparent"} 
+            ${!item.checked ? "no-print opacity-40" : "opacity-100"}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={() => toggleSpec(index)}
+                    className="no-print w-4 h-4 accent-slate-900"
+                  />
+                  <span
+                    className={`font-bold text-[11px] flex-grow text-right ${
+                      item.checked ? "text-slate-900" : "text-slate-400"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* /* infromation section */}
+        <div className="mt-7  border-t-3">
+          <div
+            className="flex items-center justify-between   divide-x-2 divide-x-reverse divide-slate-900"
+            dir="rtl"
+          >
+            {/* Customer */}
+            <div className=" flex justify-center items-center">
+              <span className="font-black uppercase text-[0.7rem] px-1.5 py-0.5 rounded w-23">
+                کسٹمر کا نام:
+              </span>
+              <input
+                type="text"
+                placeholder="...."
+                className=" w-full text-[0.7rem] font-black outline-none  "
+                value={customerName}
+                readOnly
+              />
+            </div>
+
+            {/* Invoice */}
+            <div
+              className="flex-1 p-2 flex justify-center items-center gap-2"
+              dir="ltr"
+            >
+              <span className="font-black uppercase text-[0.7rem] px-1.5 py-0.5 rounded">
+                {currentInvoice?.invoiceNumber || "Auto"}
+              </span>
+              <span className=" font-bold text-[0.7rem] ">بل نمبر:</span>
+            </div>
+
+            {/* Contact */}
+            <div className="flex-1 p-2 flex flex-col gap-1 justify-center">
+              <div className="flex items-center ">
+                <span className=" font-black uppercase text-[0.7rem] px-1.5 py-0.5 rounded">
+                  اصغر
+                </span>
+                <span className="font-extrabold tracking-wider text-sm">
+                  03349071546
+                </span>
               </div>
-            )))}
+            </div>
           </div>
 
-          <div className="w-1/3 p-2 space-y-1 text-right">
-            {specs.map((item, index) => (
-              <label key={index} className={`flex justify-between items-center border-b border-gray-100 pb-1 ${!item.checked ? "print:hidden" : "print:border-none"}`}>
-                <input type="checkbox" checked={item.checked} onChange={() => toggleSpec(index)} className="no-print" />
-                {item.checked && <span className="hidden print:block text-black font-bold">✓</span>}
-                <span className={`font-medium text-[11px] ${item.checked ? "print:text-sm print:font-bold" : ""}`}>{item.label}</span>
-              </label>
-            ))}
+          {/* Payment Summary */}
+          {/* Replaces the manual grid and button block */}
+          <div className="space-y-4">
+            <PaymentSummary
+              totalAmount={totalAmount}
+              setTotalAmount={setTotalAmount}
+              advanceAmount={advanceAmount}
+              setAdvanceAmount={setAdvanceAmount}
+              tadad={tadad} // New prop
+              setTadad={setTadad} // New prop
+            />
+
+            <FormActions
+              onSave={handleSaveInvoice}
+              loading={invoiceLoading}
+              label="Confirm & Print Invoice"
+              onCancel={() => navigate("/invoices")}
+            />
           </div>
         </div>
-
-        {/* Payment Summary */}
-        <div className="mt-4 border-2 border-gray-800 rounded-lg bg-gray-50 overflow-hidden print:bg-white">
-  
-  {/* Header Row: Shown in Print and on Screen for context */}
-  <div className="flex justify-between items-center px-6 py-2 border-b-2 border-gray-800 bg-slate-100 print:bg-white">
-    <div className="flex gap-3 items-center">
-      <span className="text-[10px] font-black uppercase text-gray-500">Customer:</span>
-      <span className="font-black text-lg text-black uppercase tracking-tight">{customerName || "---"}</span>
-    </div>
-    <div className="flex gap-3 items-center">
-      <span className="text-[10px] font-black uppercase text-gray-500">Contact:</span>
-      <span className="font-black text-lg text-blue-700 tracking-widest">{contactNo || "---"}</span>
-    </div>
-  </div>
-
-  {/* Calculation Grid */}
-  <div className="grid grid-cols-3 gap-0">
-    {/* Total Amount */}
-    <div className="flex flex-col items-center p-3 border-r border-gray-800">
-      <label className="text-[10px] font-black mb-1 text-gray-500 uppercase">کل رقم (Total)</label>
-      <div className="relative w-full px-4">
-        <span className="absolute left-2 top-1 text-xs font-bold text-gray-400">Rs.</span>
-        <input 
-          type="number" 
-          className="w-full text-center text-2xl font-black bg-transparent outline-none border-b-2 border-transparent focus:border-black transition-colors print:border-none" 
-          value={totalAmount} 
-          onChange={(e) => setTotalAmount(Number(e.target.value))} 
-        />
-      </div>
-    </div>
-
-    {/* Advance Amount */}
-    <div className="flex flex-col items-center p-3 border-r border-gray-800 bg-green-50/30">
-      <label className="text-[10px] font-black mb-1 text-green-700 uppercase">وصول (Advance)</label>
-      <div className="relative w-full px-4">
-        <span className="absolute left-2 top-1 text-xs font-bold text-green-400">Rs.</span>
-        <input 
-          type="number" 
-          className="w-full text-center text-2xl font-black text-green-700 bg-transparent outline-none border-b-2 border-transparent focus:border-green-700 transition-colors print:border-none" 
-          value={advanceAmount} 
-          onChange={(e) => setAdvanceAmount(Number(e.target.value))} 
-        />
-      </div>
-    </div>
-
-    {/* Balance Amount */}
-    <div className="flex flex-col items-center p-3 bg-red-50 print:bg-white">
-      <label className="text-[10px] font-black mb-1 text-red-700 uppercase">بقیہ (Balance)</label>
-      <div className="flex items-baseline gap-1">
-        <span className="text-sm font-bold text-red-400">Rs.</span>
-        <div className="text-3xl font-black text-red-600 tabular-nums">
-          {balanceAmount.toLocaleString()}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-        <button 
-          onClick={handleSaveInvoice} 
-          disabled={invoiceLoading} 
-          className={`mt-4 w-full py-3 font-bold text-lg rounded shadow-md no-print transition-colors ${invoiceLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 text-white hover:bg-black"}`}
-        >
-          {invoiceLoading ? "Saving Invoice..." : "Save & Print Invoice"}
-        </button>
       </div>
     </div>
   );

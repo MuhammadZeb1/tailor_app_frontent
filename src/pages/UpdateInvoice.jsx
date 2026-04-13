@@ -1,245 +1,396 @@
 import React, { useEffect, useState } from "react";
+
 import { useParams, useNavigate } from "react-router-dom";
+
 import { useDispatch, useSelector } from "react-redux";
-import { fetchInvoices, updateInvoice } from "../feathures/invoice/invoiceSlice";
+
+import {
+  fetchInvoices,
+  updateInvoice,
+  resetInvoiceState,
+} from "../feathures/invoice/invoiceSlice";
+
 import { fetchImages } from "../feathures/imageSlice";
+
+import { toast } from "react-toastify";
+
+import DesignCanvas from "../components/DesignCanvas"; // Ensure path is correct
+
+import StyleIcon from "../components/StyleIcon"; // Ensure path is correct
+import TailoringHeader from "../components/TailoringHeader";
 
 const UpdateInvoice = () => {
   const { id } = useParams();
+
   const navigate = useNavigate();
+
   const dispatch = useDispatch();
 
   const { invoices } = useSelector((state) => state.invoice);
+
   const { rows } = useSelector((state) => state.images);
+
   const [formData, setFormData] = useState(null);
 
-  // Default specifications list
+  const [droppedItems, setDroppedItems] = useState([]);
+
   const defaultSpecs = [
     { label: "جیب پٹی - ڈبل سلائی", checked: false },
+
     { label: "ڈبل دھاگہ سنگل سلائی", checked: false },
+
     { label: "ڈبل سلائی", checked: false },
+
     { label: "ڈبل دھاگہ ڈبل سلائی", checked: false },
+
     { label: "3x3 سلائی", checked: false },
-    { label: "3x3 ڈبل دھاگہ سلائی", checked: false },
+
+    { label: "3x3 ڈبل دھاگہ سنگل سلائی", checked: false },
+
     { label: "پیر سلائی", checked: false },
+
     { label: "واسکٹ بٹن", checked: false },
+
     { label: "نام نہیں", checked: false },
+
     { label: "چاک پٹی کاج", checked: false },
+
     { label: "پٹی میں 5 کاج", checked: false },
+
     { label: "سلکی تار، سنگل سلائی", checked: false },
+
     { label: "سلکی تار ڈبل سلائی", checked: false },
+
     { label: "سلکی تار ٹرپل سلائی", checked: false },
   ];
 
   useEffect(() => {
     dispatch(fetchImages());
+
     if (invoices.length === 0) {
       dispatch(fetchInvoices());
     } else {
       const inv = invoices.find((i) => i._id === id);
+
       if (inv) {
-        // Ensure that specifications in formData match our default labels
-        // but keep the 'checked' status from the database
-        const mergedSpecs = defaultSpecs.map(ds => {
-          const existing = inv.specifications?.find(s => s.label === ds.label);
+        // 1. Merge Specifications safely
+        const mergedSpecs = defaultSpecs.map((ds) => {
+          const existing = inv.specifications?.find(
+            (s) => s.label === ds.label,
+          );
           return existing ? { ...ds, checked: existing.checked } : ds;
         });
 
-        setFormData({ ...inv, specifications: mergedSpecs });
+        // 2. Set Form Data with fallbacks
+        setFormData({
+          ...inv,
+          specifications: mergedSpecs,
+          customerAddress: inv.customerAddress || "",
+          totalAmount: inv.totalAmount ?? 0,
+          advanceAmount: inv.advanceAmount ?? 0,
+          tadad: inv.tadad ?? 1, // Add this line
+          balanceAmount: (inv.totalAmount ?? 0) - (inv.advanceAmount ?? 0),
+        });
+
+        // 3. Handle Canvas Data (Backward compatibility for selectedImages)
+        const savedCanvasData = inv.designLayers || inv.selectedImages || [];
+        setDroppedItems(
+          savedCanvasData.map((img, index) => ({
+            ...img,
+            id: img.id || `saved-${index}-${Date.now()}`, // Better unique ID generation
+          })),
+        );
       }
     }
+    // Remove the duplicate mergedSpecs code that was sitting down here!
   }, [id, invoices, dispatch]);
 
-  const toggleImageSelection = (imageName) => {
-    const currentImages = [...formData.selectedImages];
-    const updatedImages = currentImages.includes(imageName)
-      ? currentImages.filter((name) => name !== imageName)
-      : [...currentImages, imageName];
-    
-    setFormData({ ...formData, selectedImages: updatedImages });
-  };
+  const formatDateForInput = (dateStr) =>
+    dateStr ? dateStr.split("T")[0] : "";
 
-  const handleMeasurementChange = (index, newValue) => {
-    const updatedMeasurements = [...formData.measurements];
-    updatedMeasurements[index] = { ...updatedMeasurements[index], value: newValue };
-    setFormData({ ...formData, measurements: updatedMeasurements });
+  const handleMeasurementChange = (index, value) => {
+    const updated = [...formData.measurements];
+
+    updated[index] = { ...updated[index], value: value ?? "" };
+
+    setFormData({ ...formData, measurements: updated });
   };
 
   const handleSpecToggle = (index) => {
-    const updatedSpecs = [...formData.specifications];
-    updatedSpecs[index] = { ...updatedSpecs[index], checked: !updatedSpecs[index].checked };
-    setFormData({ ...formData, specifications: updatedSpecs });
+    const updated = [...formData.specifications];
+
+    updated[index] = { ...updated[index], checked: !updated[index].checked };
+
+    setFormData({ ...formData, specifications: updated });
   };
 
-  const handleUpdate = (e) => {
+  const handleAmountChange = (field, value) => {
+    const val = Number(value) || 0;
+
+    const update = { ...formData };
+
+    if (field === "total") update.totalAmount = val;
+
+    if (field === "advance") update.advanceAmount = val;
+    if (field === "tadad") update.tadad = val;
+
+    update.balanceAmount = update.totalAmount - update.advanceAmount;
+
+    setFormData(update);
+  };
+
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    dispatch(updateInvoice({ id, data: formData }));
-    navigate("/invoices");
+
+    try {
+      const dataToUpdate = {
+        customerName: formData.customerName,
+        customerAddress: formData.customerAddress, // This is correct
+        contactNo: formData.contactNo,
+        bookingDate: formData.bookingDate,
+        deliveryDate: formData.deliveryDate,
+        refNumber: formData.refNumber,
+        measurements: formData.measurements,
+        specifications: formData.specifications.filter((s) => s.checked),
+        designLayers: droppedItems,
+        additionalNotes: formData.additionalNotes,
+        totalAmount: formData.totalAmount,
+        advanceAmount: formData.advanceAmount,
+        balanceAmount: formData.balanceAmount,
+       tadad: Number(formData.tadad),
+      };
+
+      // REMOVE the toast from here!
+
+      toast.success("Invoice updated successfully!");
+      // 1. Wait for the update to finish
+      console.log("Data to Update:", dataToUpdate);
+      await dispatch(updateInvoice({ id, data: dataToUpdate })).unwrap();
+
+      // 2. Show the toast ONLY after success
+
+      // 3. Reset and Navigate
+      dispatch(resetInvoiceState());
+
+      navigate("/invoices");
+    } catch (err) {
+      console.error("Update Error:", err);
+      const errorMessage =
+        err?.message ||
+        (typeof err === "string" ? err : "Something went wrong");
+      toast.error(`Update failed: ${errorMessage}`);
+    }
   };
 
-  if (!formData) return <div className="p-10 text-center font-bold">Loading Invoice Data...</div>;
+  if (!formData)
+    return <div className="p-10 text-center font-black">LOADING...</div>;
 
   return (
-    <div className="min-h-screen py-10 flex items-center bg-gray-50">
-      <div className="max-w-4xl w-full mx-auto p-4 bg-white border border-gray-800 text-[12px] font-sans shadow-lg" dir="rtl">
-        
-        {/* Header Section */}
-        <div className="flex justify-between items-start border-2 border-gray-800 rounded-xl p-3 mb-2 gap-4">
-          <div className="text-right space-y-2">
-            <div className="flex items-center gap-2">
-              <label className="font-bold w-24">تاریخ بکنگ:</label>
-              <input 
-                type="date" 
-                className="border-b border-gray-300 outline-none" 
-                value={formData.bookingDate ? formData.bookingDate.split('T')[0] : ''}
-                onChange={(e) => setFormData({...formData, bookingDate: e.target.value})}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="font-bold w-24">تاریخ واپسی:</label>
-              <input 
-                type="date" 
-                className="border-b border-gray-300 outline-none" 
-                value={formData.deliveryDate ? formData.deliveryDate.split('T')[0] : ''}
-                onChange={(e) => setFormData({...formData, deliveryDate: e.target.value})}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="font-bold w-24">فون نمبر:</label>
-              <input 
-                type="text" 
-                value={formData.contactNo} 
-                onChange={(e) => setFormData({...formData, contactNo: e.target.value})} 
-                className="border-b border-gray-800 focus:outline-none w-32 font-bold" 
-              />
-            </div>
-          </div>
+    <div className="min-h-screen py-4  flex flex-col items-center">
+      <div
+        className="max-w-6xl w-full mx-auto p-6  rounded-3xl shadow-xl border border-slate-200"
+        dir="rtl"
+      >
+        {/* TOP HEADER SECTION */}
+        <TailoringHeader
+          // 1. Wrap dates in the formatter to fix the console error
+          bookingDate={formatDateForInput(formData.bookingDate)}
+          setBookingDate={(val) =>
+            setFormData({ ...formData, bookingDate: val })
+          }
+          deliveryDate={formatDateForInput(formData.deliveryDate)}
+          setDeliveryDate={(val) =>
+            setFormData({ ...formData, deliveryDate: val })
+          }
+          // 2. Customer Info
+          customerName={formData.customerName}
+          setCustomerName={(val) =>
+            setFormData({ ...formData, customerName: val })
+          }
+          // 3. Address Connection
+          customerAddress={formData.customerAddress}
+          setCustomerAddress={(val) =>
+            setFormData({ ...formData, customerAddress: val })
+          }
+          contactNo={formData.contactNo}
+          setContactNo={(val) => setFormData({ ...formData, contactNo: val })}
+          refNo={formData.refNumber}
+          setRefNo={(val) => setFormData({ ...formData, refNumber: val })}
+          invoiceNumber={formData.invoiceNumber}
+        />
 
-          <div className="space-y-2 text-left" dir="ltr">
-            <p className="flex items-center gap-2 justify-end">
-              <label className="font-bold text-gray-800">Inv.No.</label>
-              <span className="border-b border-gray-800 w-24 text-center font-bold text-lg text-blue-800">
-                {formData.invoiceNumber}
-              </span>
-            </p>
-            <p className="flex items-center gap-2 justify-end">
-              <label className="font-bold">Ref.No.</label>
-              <input 
-                type="number" 
-                value={formData.refNumber} 
-                onChange={(e) => setFormData({...formData, refNumber: e.target.value})} 
-                className="border-b border-gray-800 focus:outline-none w-16 text-center font-bold" 
-              />
-            </p>
-            <p className="flex items-center gap-2 justify-end">
-              <label className="font-bold">Name</label>
-              <input 
-                type="text" 
-                value={formData.customerName} 
-                onChange={(e) => setFormData({...formData, customerName: e.target.value})} 
-                className="border-b border-gray-800 focus:outline-none w-32 px-1 text-right font-bold" 
-              />
-            </p>
-          </div>
-        </div>
+        {/* MEASUREMENTS GRID */}
 
-        {/* Measurements Grid */}
-        <div className="grid grid-cols-9 border-t-2 border-x-2 border-gray-800">
-          {formData.measurements.map((item, index) => (
-            <div key={index} className="border-b-2 border-l-2 border-gray-800 text-center">
-              <div className="bg-gray-100 py-1 font-bold border-b border-gray-800 text-[10px]">{item.label}</div>
-              <input 
-                type="text" 
-                value={item.value} 
-                onChange={(e) => handleMeasurementChange(index, e.target.value)} 
-                className="py-2 px-1 text-lg font-bold w-full text-center focus:outline-none bg-transparent" 
+        <div className="grid grid-cols-9 border-2  rounded-2xl overflow-hidden mb-6 ">
+          {formData.measurements.map((m, i) => (
+            <div key={i} className="border-l border-slate-900 last:border-l-0">
+              <div className=" text-[10px] py-1 font-bold text-center uppercase">
+                {m.label}
+              </div>
+
+              <input
+                className="w-full text-center py-2 text-xl font-black outline-none "
+                value={m.value}
+                onChange={(e) => handleMeasurementChange(i, e.target.value)}
               />
             </div>
           ))}
         </div>
 
-        {/* Styles & Specifications Section */}
-        <div className="flex border-2 border-gray-800 mt-2 min-h-[250px]">
-          {/* Style Images Selection */}
-          <div className="flex-grow grid grid-cols-4 gap-2 p-2 border-l border-gray-800 bg-gray-50">
-            {rows && Object.keys(rows).map((row) => rows[row].map((img) => (
-              <div 
-                key={img.name} 
-                onClick={() => toggleImageSelection(img.name)} 
-                className={`relative border-2 p-1 flex flex-col items-center rounded cursor-pointer h-20 justify-center ${formData.selectedImages.includes(img.name) ? "border-blue-600 bg-blue-100" : "border-transparent opacity-60"}`}
-              >
-                <img src={img.url} alt={img.name} className="max-h-full object-contain" />
-              </div>
-            )))}
+        {/* MAIN DESIGN AREA */}
+
+        {/* MAIN DESIGN AREA */}
+        {/* MAIN DESIGN AREA */}
+        <div className="flex gap-2 items-start h-[500px]">
+          {/* 1. LEFT SIDEBAR: STYLE LIBRARY */}
+          <div className="w-44 flex flex-col border-2 border-slate-900 rounded-3xl overflow-hidden h-full">
+            <div className=" text-[10px] font-black p-1.5 text-center">
+              STYLE LIBRARY
+            </div>
+            <div className="flex-grow overflow-y-auto p-2 grid grid-cols-2 gap-1.5">
+              {rows &&
+                Object.values(rows)
+                  .flat()
+                  .map((img) => <StyleIcon key={img.name} img={img} />)}
+            </div>
           </div>
 
-          {/* Checklist Specifications Mapped Here */}
-          <div className="w-1/3 p-2 space-y-1 text-right bg-white overflow-y-auto max-h-[300px]">
-            {formData.specifications.map((item, index) => (
-              <label key={index} className="flex justify-between items-center border-b border-gray-100 pb-1 cursor-pointer hover:bg-gray-50">
-                <input 
-                  type="checkbox" 
-                  checked={item.checked} 
-                  onChange={() => handleSpecToggle(index)} 
-                  className="w-4 h-4"
-                />
-                <span className={`font-medium text-[11px] pr-2 ${item.checked ? "text-black font-bold" : "text-gray-500"}`}>
-                  {item.label}
-                </span>
-              </label>
-            ))}
+          {/* 2. CENTER COLUMN: Canvas + Notes stacked with minimal gap */}
+          <div className="flex-grow flex flex-col gap-1 h-full">
+            {/* Design Canvas Area - Height increased slightly */}
+            <div className="w-full h-[320px]">
+              <DesignCanvas
+                droppedItems={droppedItems}
+                setDroppedItems={setDroppedItems}
+              />
+            </div>
+
+            {/* Additional Notes Area - Tightly packed */}
+            <div className="w-full flex-grow flex flex-col mt-1.5">
+              <textarea
+                className="flex-grow w-full p-2 border-2 border-slate-900 rounded-xl outline-none  font-bold text-[12px] text-right resize-none leading-tight"
+                placeholder="اضافی ہدایات..."
+                value={formData.additionalNotes || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, additionalNotes: e.target.value })
+                }
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          {/* 3. RIGHT SIDEBAR: SPECIFICATIONS */}
+          <div className="w-56 border-2 border-slate-900 rounded-3xl overflow-hidden  flex flex-col h-full">
+            <div className="  text-[10px] font-black p-1.5 text-center uppercase">
+              Specifications
+            </div>
+
+            <div className="flex-grow overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
+              {formData.specifications.map((item, i) => (
+                <label
+                  key={i}
+                  className="flex items-center justify-between px-2 py-1  rounded-lg cursor-pointer transition-all border-b border-slate-50 last:border-0"
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={() => handleSpecToggle(i)}
+                    className="w-3.5 h-3.5 accent-slate-900"
+                  />
+
+                  <span
+                    className={`text-[10.5px] font-bold ${
+                      item.checked ? "text-slate-900" : ""
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Payment Summary */}
-        <div className="mt-4 border-2 border-gray-800 rounded-lg bg-gray-50 overflow-hidden">
-          <div className="grid grid-cols-3 gap-0">
-            <div className="flex flex-col items-center p-3 border-l border-gray-800">
-              <label className="font-bold mb-1 text-gray-700">کل رقم (Total)</label>
-              <input 
-                type="number" 
-                className="w-full text-center text-xl font-bold bg-transparent outline-none border-b border-gray-300 focus:border-black" 
-                value={formData.totalAmount} 
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setFormData({...formData, totalAmount: val, balanceAmount: val - formData.advanceAmount});
-                }} 
-              />
-            </div>
-            <div className="flex flex-col items-center p-3 border-l border-gray-800">
-              <label className="font-bold mb-1 text-gray-700">وصول (Advance)</label>
-              <input 
-                type="number" 
-                className="w-full text-center text-xl font-bold text-green-700 bg-transparent outline-none border-b border-gray-300 focus:border-green-700" 
-                value={formData.advanceAmount} 
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setFormData({...formData, advanceAmount: val, balanceAmount: formData.totalAmount - val});
-                }} 
-              />
-            </div>
-            <div className="flex flex-col items-center p-3 bg-red-50">
-              <label className="font-bold mb-1 text-gray-700">بقیہ (Balance)</label>
-              <div className="text-2xl font-black text-red-600">{formData.balanceAmount}</div>
-            </div>
-          </div>
-        </div>
+        {/* PAYMENT SUMMARY */}
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 mt-4">
-          <button 
-            type="submit" 
+        {/* PAYMENT SUMMARY - UPDATED TO 4 COLUMNS */}
+<div className="mt-6 border-2  rounded-2xl overflow-hidden ">
+  <div className="grid grid-cols-4 divide-x-2 divide-x-reverse divide-slate-900 text-center">
+    
+    {/* 1. TADAD - White BG */}
+    <div className="p-3 ">
+      <label className="text-[10px] font-bold  uppercase block mb-1">
+        تعداد / Qty
+      </label>
+      <input
+        type="number"
+        className="bg-transparent text-3xl font-black w-full text-center outline-none text-slate-900 "
+        value={formData.tadad}
+        onChange={(e) => handleAmountChange("tadad", e.target.value)}
+      />
+    </div>
+
+    {/* 2. TOTAL AMOUNT - Dark BG */}
+    <div className="p-3 ">
+      <label className="text-[10px] font-bold opacity-60  uppercase block mb-1">
+        Total Amount
+      </label>
+      <div className="flex justify-center items-center gap-1">
+        <span className="font-bold text-amber-400">Rs.</span>
+        <input
+          className="bg-transparent text-3xl font-black w-full text-center outline-none  focus:ring-0"
+          value={formData.totalAmount}
+          onChange={(e) => handleAmountChange("total", e.target.value)}
+        />
+      </div>
+    </div>
+
+    {/* 3. ADVANCE PAID - White BG */}
+    <div className="p-3 bg-white">
+      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
+        Advance Paid
+      </label>
+      <div className="flex justify-center items-center gap-1">
+        <span className="text-sm font-bold ">Rs.</span>
+        <input
+          className="bg-transparent text-3xl font-black w-full text-center outline-none  "
+          value={formData.advanceAmount}
+          onChange={(e) => handleAmountChange("advance", e.target.value)}
+        />
+      </div>
+    </div>
+
+    {/* 4. BALANCE DUE - Amber Light BG */}
+    <div className="p-3 ">
+      <label className="text-[10px] font-bold text-amber-700 uppercase block mb-1">
+        Balance Due
+      </label>
+      <div className="flex justify-center items-center gap-1">
+        <span className="text-sm font-bold text-amber-600">Rs.</span>
+        <span className="text-4xl font-black text-slate-900">
+          {formData.balanceAmount}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+        {/* FOOTER BUTTONS */}
+
+        <div className="flex gap-4 mt-6">
+          <button
             onClick={handleUpdate}
-            className="flex-grow bg-gray-900 text-white py-3 font-bold text-lg rounded shadow-md hover:bg-black transition-colors"
+            className="flex-grow  py-4 rounded-2xl font-black text-lg hover:bg-black transition-all shadow-lg active:scale-95"
           >
-            Update Invoice
+            UPDATE & SAVE INVOICE
           </button>
-          <button 
-            type="button" 
-            onClick={() => navigate("/history")} 
-            className="px-6 bg-red-600 text-white font-bold rounded shadow-md hover:bg-red-700"
+
+          <button
+            onClick={() => navigate("/invoices")}
+            className="px-8  border-slate-900 text-slate-900 py-4 rounded-2xl font-black 
+            "
           >
-            Cancel
+            CANCEL
           </button>
         </div>
       </div>
