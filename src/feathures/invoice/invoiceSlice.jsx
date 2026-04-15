@@ -3,12 +3,26 @@ import api from "../../app/api";
 
 /* ================= THUNKS ================= */
 
+// --- NEW: UPDATE ONLY WORK READINESS (SUIT STATUS) ---
+export const updateWorkStatus = createAsyncThunk(
+  "invoice/updateWorkStatus",
+  async ({ id, status }, { rejectWithValue }) => {
+    try {
+      // Hits the specific PATCH route we created in the backend
+      const res = await api.patch(`/api/invoices/${id}/work-status`, { status });
+      return res.data; 
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 export const createInvoice = createAsyncThunk(
   "invoice/create",
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.post("/api/invoices", data);
-      return res.data; // This now includes the auto-generated invoiceNumber
+      return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
     }
@@ -57,7 +71,7 @@ const invoiceSlice = createSlice({
   name: "invoice",
   initialState: {
     invoices: [],
-    currentInvoice: null, // Holds the most recently created/selected invoice
+    currentInvoice: null,
     loading: false,
     error: null,
     success: false,
@@ -80,7 +94,7 @@ const invoiceSlice = createSlice({
       .addCase(createInvoice.fulfilled, (state, action) => {
         state.loading = false;
         state.success = true;
-        state.currentInvoice = action.payload; // Store the specific invoice returned
+        state.currentInvoice = action.payload;
         state.invoices.unshift(action.payload);
       })
       .addCase(createInvoice.rejected, (state, action) => {
@@ -94,12 +108,30 @@ const invoiceSlice = createSlice({
         state.invoices = action.payload;
       })
 
-      /* UPDATE */
+      /* FULL UPDATE */
       .addCase(updateInvoice.fulfilled, (state, action) => {
         state.success = true;
         state.currentInvoice = action.payload;
         const index = state.invoices.findIndex((inv) => inv._id === action.payload._id);
         if (index !== -1) state.invoices[index] = action.payload;
+      })
+
+      /* --- NEW: WORK STATUS UPDATE (Suit Ready) --- */
+      .addCase(updateWorkStatus.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateWorkStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        // Find the invoice in the list and update only the status/virtuals
+        const index = state.invoices.findIndex((inv) => inv._id === action.payload._id);
+        if (index !== -1) {
+          state.invoices[index] = action.payload;
+        }
+      })
+      .addCase(updateWorkStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
       /* DELETE */

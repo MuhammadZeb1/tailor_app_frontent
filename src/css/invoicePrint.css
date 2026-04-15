@@ -1,0 +1,80 @@
+@media print {
+  /* Set page size and margins to ensure content fits on one page */
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area, 
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    padding: 15mm; /* Standard margin for printing */
+    box-sizing: border-box;
+    /* Ensure no page breaks inside the print area */
+    page-break-after: avoid;
+    page-break-before: avoid;
+  }
+
+  /* MAIN LAYOUT FIX */
+  .print-area .flex.flex-col.lg\:flex-row {
+    display: flex !important;
+    flex-direction: row !important; /* Keep left-to-right flow */
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  /* LEFT SIDE (Canvas + Notes) */
+  .print-area .flex-grow {
+    width: 65% !important;
+    flex-basis: 65%;
+  }
+
+  /* RIGHT SIDE (Specs) */
+  .print-area .specs-container {
+    width: 32% !important;
+    flex-basis: 32%;
+  }
+
+  /* Notes Fix */
+  .print-area .whitespace-pre-wrap {
+    direction: ltr !important;
+    text-align: right !important;
+  }
+
+  /* Hide buttons and unnecessary elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure images and borders are visible */
+  .design-preview {
+    border: 1px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Ensure background colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

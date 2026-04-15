@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom"; // Added for navigation
 import { fetchImages } from "../feathures/imageSlice";
 import { createInvoice } from "../feathures/invoice/invoiceSlice";
 import { toast } from "react-toastify";
+
+// Components
 import DesignCanvas from "../components/DesignCanvas";
 import StyleIcon from "../components/StyleIcon";
 import TailoringHeader from "../components/TailoringHeader";
 import PaymentSummary from "../components/PaymentSummary";
 import FormActions from "../components/FormActions";
 import AdditionalNotes from "../components/AdditionalNotes";
+import MeasurementGrid from "../components/MeasurementGrid";
 
 const TailoringInvoice = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // Initialize navigation
 
-  // --- UPDATED DESIGN STATE TO ARRAY ---
+  // --- DESIGN STATE ---
   const [droppedItems, setDroppedItems] = useState([]);
 
-  // Data States
+  // Redux State
   const { rows } = useSelector((state) => state.images);
   const {
     loading: invoiceLoading,
@@ -24,6 +29,7 @@ const TailoringInvoice = () => {
     currentInvoice,
   } = useSelector((state) => state.invoice);
 
+  // Form Data States
   const [tadad, setTadad] = useState(1);
   const [customerAddress, setCustomerAddress] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
@@ -34,8 +40,6 @@ const TailoringInvoice = () => {
   const [contactNo, setContactNo] = useState("");
   const [totalAmount, setTotalAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
-  const balanceAmount =
-    (Number(totalAmount) || 0) - (Number(advanceAmount) || 0);
 
   const [measurements, setMeasurements] = useState([
     { label: "لمبائی ", value: "", placeholder: "لمبائی", type: "number" },
@@ -66,6 +70,7 @@ const TailoringInvoice = () => {
     { label: "سلکی تار ٹرپل سلائی", checked: false },
   ]);
 
+  // --- EFFECTS ---
   useEffect(() => {
     dispatch(fetchImages());
   }, [dispatch]);
@@ -77,7 +82,8 @@ const TailoringInvoice = () => {
     }
   }, [success, currentInvoice]);
 
-  const handleChange = (index, newValue) => {
+  // --- HANDLERS ---
+  const handleMeasurementChange = (index, newValue) => {
     const updated = [...measurements];
     updated[index].value = newValue;
     setMeasurements(updated);
@@ -86,8 +92,8 @@ const TailoringInvoice = () => {
   const toggleSpec = (index) => {
     setSpecs((prev) =>
       prev.map((item, i) =>
-        i === index ? { ...item, checked: !item.checked } : item,
-      ),
+        i === index ? { ...item, checked: !item.checked } : item
+      )
     );
   };
 
@@ -104,7 +110,6 @@ const TailoringInvoice = () => {
       customerAddress,
       additionalNotes,
       tadad: Number(tadad) || 1,
-
       bookingDate: bookingDate || new Date().toISOString().split("T")[0],
       deliveryDate,
       measurements: measurements.map((m) => ({
@@ -123,15 +128,11 @@ const TailoringInvoice = () => {
       })),
       totalAmount: Number(totalAmount),
       advanceAmount: Number(advanceAmount),
-      balanceAmount: balanceAmount,
     };
-
-    // DEBUG: Log this to see your actual data in the console
-    console.log("Sending Invoice Data:", invoiceData);
 
     dispatch(createInvoice(invoiceData))
       .unwrap()
-      .then((res) => {
+      .then(() => {
         toast.success("Invoice created successfully!");
       })
       .catch((err) => {
@@ -149,7 +150,7 @@ const TailoringInvoice = () => {
         <div className="grid grid-cols-2 gap-2">
           {rows &&
             Object.keys(rows).map((row) =>
-              rows[row].map((img) => <StyleIcon key={img.name} img={img} />),
+              rows[row].map((img) => <StyleIcon key={img.name} img={img} />)
             )}
         </div>
       </div>
@@ -175,49 +176,24 @@ const TailoringInvoice = () => {
           invoiceNumber={currentInvoice?.invoiceNumber}
         />
 
-        {/* Measurements Grid */}
-        <div className="grid grid-cols-9 border-2 border-slate-900 rounded-xl overflow-hidden shadow-sm">
-          {measurements
-            .slice()
-            .reverse()
-            .map((item, index) => (
-              <div
-                key={index}
-                className="border-l text-black border-slate-200 last:border-l-0 text-center"
-              >
-                <div className="bg-slate-900 py-2 font-bold text-[9px] uppercase tracking-wider">
-                  {item.label}
-                </div>
-                <input
-                  type={item.type}
-                  value={item.value}
-                  onChange={(e) =>
-                    handleChange(
-                      measurements.length - 1 - index,
-                      e.target.value,
-                    )
-                  }
-                  className="py-2 px-1 text-xl font-black w-full text-center focus:bg-amber-50 focus:outline-none bg-transparent"
-                />
-              </div>
-            ))}
+        {/* Measurements Grid - FIXED: use 'measurements' directly, not 'formData' */}
+        <div className="my-4">
+          <MeasurementGrid
+            measurements={measurements}
+            onChange={handleMeasurementChange}
+          />
         </div>
 
-        {/* --- UPDATED CANVAS & SPECS SECTION --- */}
-        {/* --- Main Section Wrapper --- */}
-        <div className="flex gap-2 mt-2 items-stretch min-h-[100px]">
+        {/* CANVAS & SPECS SECTION */}
+        <div className="flex flex-col lg:flex-row-reverse gap-2 mt-2 items-stretch" dir="rtl">
           {/* LEFT COLUMN: Canvas + Notes */}
           <div className="flex-grow flex flex-col gap-2">
-            {" "}
-            {/* Added flex-col and gap here */}
-            {/* 1. Design Canvas Area */}
             <div className="w-full">
               <DesignCanvas
                 droppedItems={droppedItems}
                 setDroppedItems={setDroppedItems}
               />
             </div>
-            {/* 2. Additional Notes Area (Stacked Vertically) */}
             <div className="w-full">
               <AdditionalNotes
                 notes={additionalNotes}
@@ -226,8 +202,8 @@ const TailoringInvoice = () => {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Specs Checklist (Remains as is) */}
-          <div className="w-1/3 p-4 border-2 border-slate-900 rounded-2xl h-fit">
+          {/* RIGHT COLUMN: Specs Checklist */}
+          <div className="w-1/3 p-4 border-2 border-slate-900 rounded-2xl h-fit bg-white">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">
               Specifications
             </h3>
@@ -236,8 +212,8 @@ const TailoringInvoice = () => {
                 <label
                   key={item.label}
                   className={`flex justify-between items-center py-1 px-2 rounded transition-colors
-            ${!item.checked ? "print:hidden" : "bg-slate-50/50 print:bg-transparent"} 
-            ${!item.checked ? "no-print opacity-40" : "opacity-100"}`}
+                    ${!item.checked ? "print:hidden" : "bg-slate-50/50 print:bg-transparent"} 
+                    ${!item.checked ? "no-print opacity-40" : "opacity-100 cursor-pointer"}`}
                 >
                   <input
                     type="checkbox"
@@ -257,60 +233,45 @@ const TailoringInvoice = () => {
             </div>
           </div>
         </div>
-        {/* /* infromation section */}
-        <div className="mt-7  border-t-3">
+
+        {/* INFORMATION SECTION */}
+        <div className="mt-7 border-t-2 border-slate-100 pt-4">
           <div
-            className="flex items-center justify-between   divide-x-2 divide-x-reverse divide-slate-900"
+            className="flex items-center justify-between divide-x-2 divide-x-reverse divide-slate-900"
             dir="rtl"
           >
-            {/* Customer */}
-            <div className=" flex justify-center items-center">
-              <span className="font-black uppercase text-[0.7rem] px-1.5 py-0.5 rounded w-23">
-                کسٹمر کا نام:
-              </span>
-              <input
-                type="text"
-                placeholder="...."
-                className=" w-full text-[0.7rem] font-black outline-none  "
-                value={customerName}
-                readOnly
-              />
+            {/* Customer Display */}
+            <div className="flex-1 flex justify-start items-center px-2">
+              <span className="font-black text-[0.7rem] ml-2">کسٹمر کا نام:</span>
+              <span className="text-[0.7rem] font-bold">{customerName || "...."}</span>
             </div>
 
-            {/* Invoice */}
-            <div
-              className="flex-1 p-2 flex justify-center items-center gap-2"
-              dir="ltr"
-            >
-              <span className="font-black uppercase text-[0.7rem] px-1.5 py-0.5 rounded">
+            {/* Invoice Display */}
+            <div className="flex-1 flex justify-center items-center gap-2 px-2" dir="ltr">
+              <span className="font-black text-[0.7rem]">
                 {currentInvoice?.invoiceNumber || "Auto"}
               </span>
-              <span className=" font-bold text-[0.7rem] ">بل نمبر:</span>
+              <span className="font-bold text-[0.7rem]">بل نمبر:</span>
             </div>
 
-            {/* Contact */}
-            <div className="flex-1 p-2 flex flex-col gap-1 justify-center">
-              <div className="flex items-center ">
-                <span className=" font-black uppercase text-[0.7rem] px-1.5 py-0.5 rounded">
-                  اصغر
-                </span>
-                <span className="font-extrabold tracking-wider text-sm">
-                  03349071546
-                </span>
+            {/* Shop Contact */}
+            <div className="flex-1 flex flex-col justify-center px-2">
+              <div className="flex items-center gap-2">
+                <span className="font-black text-[0.7rem]">اصغر</span>
+                <span className="font-extrabold text-sm">03349071546</span>
               </div>
             </div>
           </div>
 
-          {/* Payment Summary */}
-          {/* Replaces the manual grid and button block */}
-          <div className="space-y-4">
+          {/* PAYMENT & ACTIONS */}
+          <div className="space-y-4 mt-4">
             <PaymentSummary
               totalAmount={totalAmount}
               setTotalAmount={setTotalAmount}
               advanceAmount={advanceAmount}
               setAdvanceAmount={setAdvanceAmount}
-              tadad={tadad} // New prop
-              setTadad={setTadad} // New prop
+              tadad={tadad}
+              setTadad={setTadad}
             />
 
             <FormActions
