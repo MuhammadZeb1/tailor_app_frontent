@@ -1,19 +1,25 @@
 @import "tailwindcss";
 
+/* --- General Application Styles (Non-Print) --- */
+.invoice-card-container {
+  transition: all 0.3s ease;
+}
+
+/* --- Print-Specific Styles --- */
 @media print {
-  /* Set exact page size to 4 inches wide and 6 inches high for thermal printers */
+  /* Enforce single-page printing */
   @page {
-    size: 4in 6in;
-    margin: 0mm;
+    size: auto;
+    margin: 5mm; /* Reduced margin to give more space */
   }
 
-  /* Reset body and html for thermal printing */
+  /* Reset body and html for single-page printing */
   html, body {
-    width: 4in !important; /* Explicitly set to 4 inches */
-    height: 6in !important; /* Explicitly set to 6 inches */
+    width: 100% !important;
+    height: 100% !important; /* Fixed height to 100% */
     margin: 0 !important;
     padding: 0 !important;
-    overflow: hidden; /* Prevent scrollbars and ensure content stays within bounds */
+    overflow: hidden !important; /* Hide anything that would cause a second page */
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -29,30 +35,25 @@
   }
 
   .printable {
-    position: absolute;
+    position: absolute; /* Use absolute to fix it on the first page */
     top: 0;
     left: 0;
-    /* Define a larger virtual canvas for the content to render on */
-    width: 8in !important; /* Double the target width */
-    height: 12in !important; /* Double the target height */
+    width: 100% !important;
+    height: 100% !important; /* Ensure it doesn't exceed one page */
     background: white;
-    padding: 5mm; /* Adjusted padding for the larger virtual canvas */
+    padding: 0;
     box-sizing: border-box;
-    direction: rtl; /* Set base direction for RTL layout */
-    overflow: hidden; /* Prevent content from overflowing the virtual canvas */
-    page-break-after: avoid;
-    page-break-before: avoid;
+    direction: rtl;
+    overflow: hidden; /* Prevent internal overflow from creating a second page */
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch; /* Ensure children stretch to fill width */
-
-    /* Scale down the entire printable area to fit 4x6 inches */
-    transform: scale(0.5); /* Scale down by 50% */
-    transform-origin: top left; /* Adjust origin for scaling */
+    justify-content: space-between; /* Spread content out to fill the page nicely */
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    page-break-inside: avoid !important;
   }
 
-  /* Adjust spacing for sections on the larger virtual canvas */
+  /* Adjust spacing for sections to fit on one page */
   .printable > div:nth-child(1) { /* TailoringHeader */
     margin-bottom: 2mm;
   }
@@ -62,48 +63,49 @@
   }
 
   /* MAIN LAYOUT: Canvas/Notes on right, Specs on left */
-  /* In RTL context, flex-direction: row places the first item (Canvas/Notes) on the right. */
   .printable .flex.flex-col.lg\:flex-row {
     display: flex !important;
-    flex-direction: row !important; /* This puts first item (Canvas/Notes) on right, second (Specs) on left in RTL */
-    gap: 10px;
+    flex-direction: row !important;
+    gap: 15px;
     align-items: flex-start;
-    width: 100%; /* Ensure this container takes full width of its parent */
-    flex-grow: 1; /* Allow this section to grow and take available vertical space */
+    width: 100%;
     margin-top: 2mm;
+    flex-grow: 1; /* Allow this to take up remaining space */
+    min-height: 0; /* Important for flex items with overflow */
   }
 
-  /* RIGHT SIDE: Canvas / Notes (this is the flex-grow element in the HTML) */
+  /* RIGHT SIDE: Canvas / Notes */
   .printable .flex-grow {
     width: 65% !important;
     flex-basis: 65%;
     flex-grow: 1;
-    overflow: hidden; /* Prevent overflow within this section */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  /* LEFT SIDE: Specs Section (this is the lg:w-1/3 element in the HTML) */
+  /* LEFT SIDE: Specs Section */
   .printable .specs-container,
   .printable .lg\:w-1\/3 {
     width: 33% !important;
     flex-basis: 33%;
     flex-shrink: 0;
-    overflow: hidden; /* Prevent overflow within this section */
   }
 
-  /* Design Preview (Canvas) size for the larger virtual canvas */
+  /* Design Preview (Canvas) size for full-page */
   .design-preview {
-    height: 250px !important; /* Adjusted for larger virtual canvas */
+    height: 300px !important; /* Slightly reduced height to ensure single-page fit */
     width: 100% !important;
-    border: 1px solid #000 !important;
+    border: 2px solid #000 !important;
     background-color: #f8fafc !important;
   }
 
-  /* Typography optimization for the larger virtual canvas */
+  /* Typography optimization for full-page printing */
   .printable {
-    font-size: 10pt !important; /* Base font size for the larger virtual canvas */
+    font-size: 11pt !important; /* Slightly reduced font size */
   }
 
-  .printable h2 { font-size: 14pt !important; }
+  .printable h2 { font-size: 16pt !important; }
   .printable h3 { font-size: 12pt !important; }
 
   /* Ensure Urdu text is aligned correctly */
@@ -111,13 +113,14 @@
   .printable textarea {
     text-align: right !important;
     direction: rtl !important;
-    font-size: 10pt !important;
-    line-height: 1.3;
+    font-size: 11pt !important;
+    line-height: 1.4;
   }
 
   /* Footer Section adjustments */
   .printable > div:last-child {
-    margin-top: 2mm; /* Add some space above the footer */
+    margin-top: 5mm;
+    page-break-inside: avoid;
   }
 
   /* Hide UI elements */
