@@ -157,7 +157,7 @@ const TailoringInvoice = () => {
 
       {/* MAIN INVOICE */}
       <div
-        className="printable max-w-4xl w-full mx-auto p-4 bg-white border-t-[10px] border-slate-900 text-[9px] font-sans shadow-2xl print:shadow-none print:border-t-0 print:m-0"
+        className=" printable max-w-4xl w-full mx-auto p-4 bg-white border-t-[10px] border-slate-900 text-[9px] font-sans shadow-2xl print:shadow-none print:border-t-0 print:m-0"
         dir="rtl"
       >
         <TailoringHeader
@@ -185,7 +185,7 @@ const TailoringInvoice = () => {
         </div>
 
         {/* CANVAS & SPECS SECTION */}
-        <div className="flex flex-col lg:flex-row-reverse gap-2 mt-2 items-stretch" dir="rtl">
+        <div className="flex flex-col lg:flex-row  gap-2 mt-2 items-stretch" dir="rtl">
           {/* LEFT COLUMN: Canvas + Notes */}
           <div className="flex-grow flex flex-col gap-2">
             <div className="w-full">
