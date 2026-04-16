@@ -133,116 +133,131 @@ const UpdateInvoice = () => {
     return <div className="p-10 text-center font-black text-slate-900">LOADING...</div>;
 
   return (
-    <div className="min-h-screen py-8 bg-slate-50 flex flex-col items-center">
-      <div className="max-w-6xl w-full mx-auto p-8 bg-white rounded-[2.5rem] shadow-2xl border-2 border-slate-100" dir="rtl">
-        
-        {/* --- DYNAMIC STATUS BAR --- */}
-        <div className="flex justify-between items-center mb-6 bg-slate-900 p-5 rounded-[1.5rem] shadow-inner">
-           <div className="flex gap-4 items-center">
-             <span className="text-white font-bold text-sm tracking-widest">SUIT STATUS:</span>
-             <button 
-                onClick={handleStatusToggle}
-                className={`px-8 py-2.5 rounded-full font-black text-[10px] uppercase transition-all shadow-lg border-2 ${
-                  formData.status === "Completed" 
-                  ? "bg-green-500 border-green-400 text-white" 
-                  : "bg-amber-500 border-amber-400 text-slate-900"
-                }`}
-             >
-               {formData.status === "Completed" ? "✓ READY FOR COLLECTION" : "MARK AS READY"}
-             </button>
-           </div>
-
-           {/* AUTOMATIC PAYMENT BADGE (Calculated based on balance) */}
-           <div className={`px-6 py-2.5 rounded-full font-black text-[10px] border-2 ${
-             formData.balanceAmount <= 0 
-             ? "bg-green-500/10 border-green-500 text-green-500" 
-             : "bg-red-500/10 border-red-500 text-red-500"
-           }`}>
-             PAYMENT: {formData.balanceAmount <= 0 ? "PAID" : "UNPAID"}
-           </div>
-        </div>
-
-        <TailoringHeader
-          bookingDate={formatDateForInput(formData.bookingDate)}
-          setBookingDate={(val) => updateFormField("bookingDate", val)}
-          deliveryDate={formatDateForInput(formData.deliveryDate)}
-          setDeliveryDate={(val) => updateFormField("deliveryDate", val)}
-          customerName={formData.customerName}
-          setCustomerName={(val) => updateFormField("customerName", val)}
-          customerAddress={formData.customerAddress}
-          setCustomerAddress={(val) => updateFormField("customerAddress", val)}
-          contactNo={formData.contactNo}
-          setContactNo={(val) => updateFormField("contactNo", val)}
-          refNo={formData.refNumber}
-          setRefNo={(val) => updateFormField("refNumber", val)}
-          invoiceNumber={formData.invoiceNumber}
-        />
-
-        <div className="my-8">
-          <MeasurementGrid 
-            measurements={formData.measurements} 
-            onChange={handleMeasurementChange} 
-          />
-        </div>
-
-        <div className="flex gap-6 items-start h-[550px] mb-8">
-          <div className="w-48 flex flex-col border-2 border-slate-200 rounded-[2rem] bg-slate-50 overflow-hidden h-full shadow-inner">
-            <div className="bg-slate-900 text-amber-500 text-[10px] font-black p-3 text-center uppercase tracking-widest">Style Library</div>
-            <div className="flex-grow overflow-y-auto p-3 grid grid-cols-2 gap-2">
-              {rows && Object.values(rows).flat().map((img) => (
-                <StyleIcon key={img.name} img={img} />
-              ))}
-            </div>
-          </div>
-
-          <div className="flex-grow flex flex-col gap-4 h-full">
-            <div className="w-full h-[350px] border-2 border-slate-200 rounded-[2rem] overflow-hidden bg-slate-50 shadow-inner">
-              <DesignCanvas droppedItems={droppedItems} setDroppedItems={setDroppedItems} />
-            </div>
-            <div className="w-full flex-grow border-2 border-slate-200 rounded-[1.5rem] overflow-hidden shadow-sm">
-              <div className="bg-slate-900 text-amber-500 text-[10px] font-black px-4 py-2 text-right uppercase tracking-widest">اضافی ہدایات (Notes)</div>
-              <textarea
-                className="w-full h-full p-4 outline-none font-bold text-sm text-right resize-none bg-white focus:bg-amber-50 transition-colors"
-                placeholder="..."
-                value={formData.additionalNotes || ""}
-                onChange={(e) => updateFormField("additionalNotes", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="w-64 border-2 border-slate-200 rounded-[2rem] bg-white overflow-hidden flex flex-col h-full shadow-sm">
-            <div className="bg-slate-900 text-amber-500 text-[10px] font-black p-3 text-center uppercase tracking-widest">Specifications</div>
-            <div className="flex-grow overflow-y-auto p-2 space-y-1">
-              {formData.specifications?.map((item, i) => (
-                <label key={i} className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer border transition-all ${item.checked ? "bg-amber-50 border-amber-200" : "bg-white border-transparent hover:bg-slate-50"}`}>
-                  <input type="checkbox" checked={item.checked} onChange={() => handleSpecToggle(i)} className="w-4 h-4 accent-slate-900" />
-                  <span className={`text-[11px] font-black uppercase ${item.checked ? "text-slate-900" : "text-slate-500"}`}>{item.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <PaymentSummary 
-          totalAmount={formData.totalAmount}
-          setTotalAmount={(val) => updateFormField("totalAmount", val)}
-          advanceAmount={formData.advanceAmount}
-          setAdvanceAmount={(val) => updateFormField("advanceAmount", val)}
-          tadad={formData.tadad}
-          setTadad={(val) => updateFormField("tadad", val)}
-        />
-
-        <div className="mt-6">
-          <FormActions 
-            onSave={handleUpdate} 
-            onCancel={() => navigate("/invoices")}
-            loading={isLoading}
-            label="Save All Changes"
-          />
-        </div>
+  <div className="min-h-screen py-5 flex items-start bg-slate-100 print:bg-white print:py-0 px-4">
+    
+    {/* SIDEBAR: Style Selection (Matching the first layout) */}
+    <div className="no-print w-64 sticky top-5 mr-4 bg-white border-2 border-slate-200 rounded-[2rem] shadow-xl h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-slate-900 text-amber-500 text-[10px] font-black p-3 text-center uppercase tracking-widest">
+        Drag Styles
+      </div>
+      <div className="flex-grow overflow-y-auto p-4 grid grid-cols-2 gap-2 bg-slate-50">
+        {rows &&
+          Object.keys(rows).map((row) =>
+            rows[row].map((img) => <StyleIcon key={img.name} img={img} />)
+          )}
       </div>
     </div>
-  );
+
+    {/* MAIN INVOICE: (Matching the max-w-4xl and centering of the first layout) */}
+    <div
+      className="printable max-w-4xl w-full mx-auto p-8 bg-white rounded-[2.5rem] shadow-2xl border-t-[10px] border-slate-900 print:shadow-none print:border-t-0 print:m-0"
+      dir="rtl"
+    >
+      {/* --- DYNAMIC STATUS BAR --- */}
+      <div className="flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-[1.5rem] shadow-inner no-print">
+        <div className="flex gap-4 items-center">
+          <span className="text-white font-bold text-[10px] tracking-widest">SUIT STATUS:</span>
+          <button
+            onClick={handleStatusToggle}
+            className={`px-6 py-2 rounded-full font-black text-[9px] uppercase transition-all shadow-lg border-2 ${
+              formData.status === "Completed"
+                ? "bg-green-500 border-green-400 text-white"
+                : "bg-amber-500 border-amber-400 text-slate-900"
+            }`}
+          >
+            {formData.status === "Completed" ? "✓ READY" : "MARK READY"}
+          </button>
+        </div>
+
+        <div className={`px-5 py-2 rounded-full font-black text-[9px] border-2 ${
+          formData.balanceAmount <= 0
+            ? "bg-green-500/10 border-green-500 text-green-500"
+            : "bg-red-500/10 border-red-500 text-red-500"
+        }`}>
+          PAYMENT: {formData.balanceAmount <= 0 ? "PAID" : "UNPAID"}
+        </div>
+      </div>
+
+      <TailoringHeader
+        bookingDate={formatDateForInput(formData.bookingDate)}
+        setBookingDate={(val) => updateFormField("bookingDate", val)}
+        deliveryDate={formatDateForInput(formData.deliveryDate)}
+        setDeliveryDate={(val) => updateFormField("deliveryDate", val)}
+        customerName={formData.customerName}
+        setCustomerName={(val) => updateFormField("customerName", val)}
+        customerAddress={formData.customerAddress}
+        setCustomerAddress={(val) => updateFormField("customerAddress", val)}
+        contactNo={formData.contactNo}
+        setContactNo={(val) => updateFormField("contactNo", val)}
+        refNo={formData.refNumber}
+        setRefNo={(val) => updateFormField("refNumber", val)}
+        invoiceNumber={formData.invoiceNumber}
+      />
+
+      <div className="my-6">
+        <MeasurementGrid
+          measurements={formData.measurements}
+          onChange={handleMeasurementChange}
+        />
+      </div>
+
+      {/* CANVAS & SPECS SECTION */}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch h-[500px] mb-8">
+        {/* CENTER: Canvas + Notes */}
+        <div className="flex-grow flex flex-col gap-4 h-full">
+          <div className="w-full h-[320px] border-2 border-slate-200 rounded-[2rem] overflow-hidden bg-slate-50 shadow-inner">
+            <DesignCanvas droppedItems={droppedItems} setDroppedItems={setDroppedItems} />
+          </div>
+          <div className="w-full flex-grow border-2 border-slate-200 rounded-[1.5rem] overflow-hidden shadow-sm">
+            <div className="bg-slate-900 text-amber-500 text-[10px] font-black px-4 py-2 text-right uppercase tracking-widest">
+              اضافی ہدایات (Notes)
+            </div>
+            <textarea
+              className="w-full h-full p-4 outline-none font-bold text-xs text-right resize-none bg-white focus:bg-amber-50 transition-colors"
+              placeholder="..."
+              value={formData.additionalNotes || ""}
+              onChange={(e) => updateFormField("additionalNotes", e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* RIGHT: Specifications */}
+        <div className="
+        w-64 border-2 border-slate-200 rounded-[2rem] bg-white overflow-hidden flex flex-col h-full shadow-sm">
+          <div className="bg-slate-900 text-amber-500 text-[10px] font-black p-3 text-center uppercase tracking-widest">
+            Specifications
+          </div>
+          <div className="flex-grow overflow-y-auto p-2 space-y-1">
+            {formData.specifications?.map((item, i) => (
+              <label key={i} className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer border transition-all ${item.checked ? "bg-amber-50 border-amber-200" : "bg-white border-transparent hover:bg-slate-50"}`}>
+                <input type="checkbox" checked={item.checked} onChange={() => handleSpecToggle(i)} className="w-3 h-3 accent-slate-900" />
+                <span className={`text-[10px] font-black uppercase ${item.checked ? "text-slate-900" : "text-slate-500"}`}>{item.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <PaymentSummary
+        totalAmount={formData.totalAmount}
+        setTotalAmount={(val) => updateFormField("totalAmount", val)}
+        advanceAmount={formData.advanceAmount}
+        setAdvanceAmount={(val) => updateFormField("advanceAmount", val)}
+        tadad={formData.tadad}
+        setTadad={(val) => updateFormField("tadad", val)}
+      />
+
+      <div className="mt-6 no-print">
+        <FormActions
+          onSave={handleUpdate}
+          onCancel={() => navigate("/invoices")}
+          loading={isLoading}
+          label="Save All Changes"
+        />
+      </div>
+    </div>
+  </div>
+);
 };
 
 export default UpdateInvoice;
